@@ -1,159 +1,95 @@
-# Milestone-Based Crowdfunding Platform
+# Milestone-Based Crowdfunding Platform (Blockchain Integrated)
 
-A full-stack web application for milestone-based crowdfunding with escrow functionality. Backers pledge funds to projects, and money is held in escrow and released per milestone after community approval through voting.
+A full-stack web application for milestone-based crowdfunding where the **Smart Contract is the Source of Truth**.
+Backers pledge funds directly to a Smart Contract. An Indexer syncs these events to a PostgreSQL database, which the Django Backend serves to the Frontend.
 
-## Tech Stack
+## Architecture
 
-- **Frontend**: Next.js 14 (App Router), TypeScript, TailwindCSS
-- **Backend**: Django 4.2, Django REST Framework
-- **Database**: PostgreSQL (or SQLite for development)
-- **Authentication**: JWT (JSON Web Tokens)
+1.  **Smart Contract (Hardhat)**: Handles business logic (Pledge, Vote, Release, Refund) and holds funds.
+2.  **Indexer (Node.js)**: Listens to Blockchain events and updates the PostgreSQL database.
+3.  **Database (PostgreSQL)**: Stores synced data for fast querying by the Backend.
+4.  **Backend (Django)**: Read-only API for project data (from DB) + Write API to construct Blockchain transactions.
+5.  **Frontend (Next.js)**: User interface.
 
-## Project Structure
+## Prerequisites
 
-```
-.
-├── backend/          # Django backend
-│   ├── config/      # Django settings
-│   ├── users/       # User and creator models
-│   ├── projects/    # Projects and milestones
-│   ├── finance/     # Wallets, pledges, releases, refunds
-│   └── governance/  # Voting and audit logs
-├── frontend/        # Next.js frontend
-│   ├── app/         # App Router pages
-│   ├── components/  # React components
-│   └── lib/         # API client and types
-└── README.md
-```
+-   **Node.js** (v18+)
+-   **Python** (v3.10+)
+-   **PostgreSQL** (running on localhost:5432)
 
-## Quick Start
+## Quick Start Guide
 
-### Backend Setup
+### 1. Database Setup
+Ensure PostgreSQL is running.
+-   **User**: `postgres`
+-   **Password**: `postgres`
+-   **Database**: `project_escrow` (will be created automatically if missing)
 
-1. Navigate to backend directory:
+### 2. Smart Contract & Indexer
+Navigate to `smartcontract/`:
 ```bash
-cd backend
-```
-
-2. Create virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your settings
-```
-
-5. Run migrations:
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-6. Create superuser:
-```bash
-python manage.py createsuperuser
-```
-
-7. Run development server:
-```bash
-python manage.py runserver
-```
-
-Backend API will be available at `http://localhost:8000/api/`
-
-### Frontend Setup
-
-1. Navigate to frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-```bash
+cd smartcontract
 npm install
 ```
 
-3. Create environment file:
+**Terminal 1: Start Blockchain Node**
 ```bash
-cp .env.example .env.local
+npx hardhat node
 ```
 
-4. Update `.env.local`:
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
+**Terminal 2: Deploy & Start Indexer**
+```bash
+# Deploy contract to local node
+npx hardhat run scripts/deploy.js --network localhost
+
+# Run DB migrations
+node worker/apply_migrations.js
+
+# Start the Indexer
+node worker/indexer.js
 ```
 
-5. Run development server:
+### 3. Backend Setup
+Navigate to `backend/`:
+```bash
+cd backend
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+# source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+**Terminal 3: Start Backend Server**
+```bash
+python manage.py runserver
+```
+API available at: `http://127.0.0.1:8000/api/`
+
+### 4. Frontend Setup
+Navigate to `frontend/`:
+```bash
+cd frontend
+npm install
+```
+
+**Terminal 4: Start Frontend**
 ```bash
 npm run dev
 ```
+App available at: `http://localhost:3000`
 
-Frontend will be available at `http://localhost:3000`
+## Key Workflows
 
-## Features
-
-### Core Functionality
-
-1. **Project Creation**: Creators can create projects with milestones
-2. **Pledging**: Backers can pledge funds to active projects
-3. **Milestone Voting**: Backers vote on milestone completion
-4. **Fund Release**: Approved milestones trigger fund releases
-5. **Refunds**: Backers can request refunds for failed milestones
-6. **Project Updates**: Creators can post updates to their projects
-
-### User Roles
-
-- **Creator**: Create and manage projects, define milestones, post updates
-- **Backer**: Pledge funds, vote on milestones, request refunds
-- **Admin**: System administration and audit log access
+-   **Create Project**: Frontend calls Backend -> Backend sends `createProject` tx to Blockchain -> Indexer sees `ProjectCreated` -> DB updated.
+-   **Pledge**: Frontend calls Backend -> Backend sends `pledge` tx -> Indexer sees `PledgeMade` -> DB updated.
+-   **Vote**: Frontend calls Backend -> Backend sends `voteOnMilestone` tx -> Indexer sees `VoteCast` -> DB updated.
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/token/` - Login
-- `POST /api/token/refresh/` - Refresh token
-- `POST /api/users/register/` - Register
-
-### Projects
-- `GET /api/projects/` - List projects
-- `POST /api/projects/` - Create project
-- `GET /api/projects/{id}/` - Project details
-- `POST /api/projects/{id}/activate/` - Activate project
-- `POST /api/projects/{id}/pledge/` - Create pledge
-
-### Milestones
-- `GET /api/projects/milestones/` - List milestones
-- `POST /api/projects/milestones/` - Create milestone
-- `POST /api/projects/milestones/{id}/open_voting/` - Open voting
-
-### Finance
-- `GET /api/finance/wallets/` - List wallets
-- `GET /api/finance/pledges/` - List pledges
-- `POST /api/finance/releases/milestone/{id}/` - Release funds
-- `POST /api/finance/refunds/` - Request refund
-
-### Governance
-- `POST /api/governance/votes/` - Vote on milestone
-- `GET /api/governance/audit-logs/` - View audit logs (admin)
-
-## Development Notes
-
-- The escrow logic is simulated in Django (not actual blockchain)
-- Voting uses simple majority rule (approve > reject)
-- Refunds are processed automatically when milestones are rejected
-- Wallet balances are updated when funds are released or refunded
-
-## License
-
-This is a university course project.
-
-
+-   `GET /api/projects/`: List projects (from DB).
+-   `POST /api/projects/`: Create project (on Blockchain).
+-   `POST /api/projects/{id}/pledge/`: Pledge to project (on Blockchain).
+-   `POST /api/milestones/{id}/approve/`: Vote to approve milestone (on Blockchain).

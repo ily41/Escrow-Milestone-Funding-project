@@ -1,64 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { getCurrentUser, getProjects, getMyProjects } from '@/lib/api'
-import type { User, Project } from '@/lib/types'
+import { useAuth } from '@/hooks/useAuth'
+import { useGetProjectsQuery } from '@/lib/api'
 import ProjectCard from '@/components/ProjectCard'
 
 export default function HomePage() {
-  const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [activeProjects, setActiveProjects] = useState<Project[]>([])
-  const [fundedProjects, setFundedProjects] = useState<Project[]>([])
-  const [myProjects, setMyProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user, loading: authLoading } = useAuth()
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  // Fetch projects with different statuses
+  const { data: activeProjects = [] } = useGetProjectsQuery({ status: 'active' })
+  const { data: fundedProjects = [] } = useGetProjectsQuery({ status: 'funded' })
+  const { data: myProjects = [] } = useGetProjectsQuery(
+    { creator: user?.id },
+    { skip: !user?.is_creator }
+  )
 
-  const loadData = async () => {
-    try {
-      const token = localStorage.getItem('access_token')
-
-      // Load user if logged in
-      if (token) {
-        try {
-          const userData = await getCurrentUser()
-          setUser(userData)
-
-          // Load user's projects if creator
-          if (userData.is_creator) {
-            try {
-              const projects = await getMyProjects()
-              setMyProjects(projects)
-            } catch (error) {
-              console.error('Failed to load user projects:', error)
-            }
-          }
-        } catch (error) {
-          console.error('Failed to load user:', error)
-        }
-      }
-
-      // Load active and funded projects
-      const [active, funded] = await Promise.all([
-        getProjects({ status: 'active' }),
-        getProjects({ status: 'funded' }),
-      ])
-
-      setActiveProjects(active)
-      setFundedProjects(funded)
-    } catch (error) {
-      console.error('Failed to load data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg)' }}>
         <p style={{ color: 'var(--text)' }}>Loading...</p>
@@ -173,8 +131,8 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myProjects.slice(0, 3).map((project, idx) => (
-                <div key={project.id} data-aos="fade-up" data-aos-delay={idx * 100}>
+              {myProjects.slice(0, 3).map((project: any, idx) => (
+                <div key={project.project_id} data-aos="fade-up" data-aos-delay={idx * 100}>
                   <ProjectCard project={project} />
                 </div>
               ))}
@@ -211,8 +169,8 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeProjects.slice(0, 6).map((project, idx) => (
-                <div key={project.id} data-aos="fade-up" data-aos-delay={idx * 100}>
+              {activeProjects.slice(0, 6).map((project: any, idx) => (
+                <div key={project.project_id} data-aos="fade-up" data-aos-delay={idx * 100}>
                   <ProjectCard project={project} />
                 </div>
               ))}
@@ -241,8 +199,8 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {fundedProjects.slice(0, 3).map((project, idx) => (
-                <div key={project.id} data-aos="fade-up" data-aos-delay={idx * 100}>
+              {fundedProjects.slice(0, 3).map((project: any, idx) => (
+                <div key={project.project_id} data-aos="fade-up" data-aos-delay={idx * 100}>
                   <ProjectCard project={project} />
                 </div>
               ))}
@@ -341,4 +299,3 @@ export default function HomePage() {
     </div>
   )
 }
-

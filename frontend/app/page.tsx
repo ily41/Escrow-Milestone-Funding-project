@@ -3,10 +3,9 @@
 import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getProjects } from '@/lib/api'
+import { useGetProjectsQuery } from '@/lib/api'
 import ProjectCard from '@/components/ProjectCard'
 import CoinModel from '@/components/CoinModel'
-import type { Project } from '@/lib/types'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -18,8 +17,12 @@ if (typeof window !== 'undefined') {
 export default function Home() {
   const router = useRouter()
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
-  const [projects, setProjects] = useState<Project[]>([])
   const coinRef = useRef<HTMLDivElement>(null)
+
+  // Fetch active projects
+  const { data: projects = [] } = useGetProjectsQuery({ status: 'active' }, {
+    skip: isLoggedIn === null, // Skip until auth check is done
+  })
 
   useLayoutEffect(() => {
     // Context for cleanup
@@ -42,11 +45,6 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    checkAuth()
-    loadProjects()
-  }, [])
-
-  const checkAuth = () => {
     const token = localStorage.getItem('access_token')
     if (token) {
       setIsLoggedIn(true)
@@ -54,16 +52,7 @@ export default function Home() {
     } else {
       setIsLoggedIn(false)
     }
-  }
-
-  const loadProjects = async () => {
-    try {
-      const data = await getProjects({ status: 'active' })
-      setProjects(data)
-    } catch (error) {
-      console.error('Failed to load projects:', error)
-    }
-  }
+  }, [router])
 
   // Show loading state while checking auth
   if (isLoggedIn === null) {
@@ -174,7 +163,7 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {projects.slice(0, 6).map((project: any, idx) => (
-                <div key={project.id} data-aos="fade-up" data-aos-delay={idx * 100}>
+                <div key={project.project_id} data-aos="fade-up" data-aos-delay={idx * 100}>
                   <ProjectCard project={project} />
                 </div>
               ))}

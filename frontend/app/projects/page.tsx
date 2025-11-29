@@ -1,38 +1,20 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { getProjects } from '@/lib/api'
+import { Suspense } from 'react'
+import { useGetProjectsQuery } from '@/lib/api'
 import ProjectCard from '@/components/ProjectCard'
 import ProjectFilters from '@/components/ProjectFilters'
 import { useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 
 function ProjectsContent() {
   const searchParams = useSearchParams()
-  const [projects, setProjects] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [allFlipped, setAllFlipped] = useState(false)
 
-  const status = searchParams.get('status') || ''
-  const search = searchParams.get('search') || ''
+  const status = searchParams.get('status') || undefined
+  const search = searchParams.get('search') || undefined
 
-  useEffect(() => {
-    loadProjects()
-  }, [status, search])
-
-  const loadProjects = async () => {
-    setLoading(true)
-    try {
-      const data = await getProjects({
-        status: status || undefined,
-        search: search || undefined,
-      })
-      setProjects(data)
-    } catch (error) {
-      console.error('Failed to load projects:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data: projects = [], isLoading, error } = useGetProjectsQuery({ status, search })
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -58,7 +40,13 @@ function ProjectsContent() {
         <ProjectFilters />
       </div>
 
-      {loading ? (
+      {error && (
+        <div className="text-center py-12">
+          <p className="text-lg text-red-500">Failed to load projects. Please try again.</p>
+        </div>
+      )}
+
+      {isLoading ? (
         <div className="text-center py-12">
           <p className="text-lg text-text opacity-70">Loading...</p>
         </div>
@@ -69,7 +57,7 @@ function ProjectsContent() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project: any) => (
-            <ProjectCard key={project.id} project={project} forceFlipped={allFlipped} />
+            <ProjectCard key={project.project_id} project={project} forceFlipped={allFlipped} />
           ))}
         </div>
       )}

@@ -1,24 +1,34 @@
-import { getProject, getProjectStats } from '@/lib/api'
+'use client'
+
+import { useGetProjectQuery } from '@/lib/api'
 import ProjectDetail from '@/components/ProjectDetail'
+import { use } from 'react'
 
-export const dynamic = 'force-dynamic'
-
-export default async function ProjectDetailPage({
+export default function ProjectDetailPage({
   params,
 }: {
-  params: { id: string } | Promise<{ id: string }>
+  params: Promise<{ id: string }>
 }) {
-  // Handle params which might be a Promise in Next.js 15+
-  const resolvedParams = await Promise.resolve(params)
-  const projectId = parseInt(resolvedParams.id)
-  
-  let project, stats
-  try {
-    project = await getProject(projectId)
-    stats = await getProjectStats(projectId)
-  } catch (error) {
-    return <div className="container mx-auto px-4 py-8">Failed to load project. Please ensure the backend is running.</div>
+  const resolvedParams = use(params)
+  const projectId = resolvedParams.id // UUID is a string, not a number
+
+  const { data: project, isLoading, error } = useGetProjectQuery(projectId)
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p className="text-text">Loading project...</p>
+      </div>
+    )
   }
 
-  return <ProjectDetail project={project} stats={stats} />
+  if (error || !project) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p className="text-red-500">Failed to load project. Please try again.</p>
+      </div>
+    )
+  }
+
+  return <ProjectDetail project={project} />
 }

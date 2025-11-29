@@ -1,0 +1,19 @@
+{
+  "name": "milestone-crowdfunding-sprint2",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "npx hardhat test",
+    "deploy:sepolia": "npx hardhat run scripts/deploy.js --network sepolia",
+    "worker": "node worker/indexer.js",
+    "backfill": "node worker/backfill.js"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.6.1",
+    "ethers": "^6.9.0",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "hardhat": "^2.19.1"
+  }
+}

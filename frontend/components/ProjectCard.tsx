@@ -9,16 +9,20 @@ interface ProjectCardProps {
 
 export default function ProjectCard({ project, forceFlipped = false }: ProjectCardProps) {
   const progress = project.progress_percentage || 0
-  const totalPledged = parseFloat(project.total_pledged || '0')
-  const goalAmount = parseFloat(project.goal_amount)
+  const totalPledged = parseFloat(project.total_pledged || project.current_funding || '0')
+  const goalAmount = parseFloat(project.goal_amount || project.funding_goal || '0')
   
-  // Handle both full creator object and creator_display_name field
+  // Handle both full creator object and creator_display_name/creator_name field
   const creatorName = (project as any).creator_display_name || 
+                     (project as any).creator_name ||
                      project.creator?.display_name || 
+                     project.creator?.name ||
                      'Unknown Creator'
 
+  const projectId = project.project_id || (project as any).id
+
   return (
-    <Link href={`/projects/${project.id}`}>
+    <Link href={`/projects/${projectId}`}>
       {/* Mobile: Original Card Design */}
       <div className="md:hidden card hover:shadow-lg transition-shadow cursor-pointer h-full">
         <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text)' }}>{project.title}</h3>
@@ -41,13 +45,13 @@ export default function ProjectCard({ project, forceFlipped = false }: ProjectCa
           <div>
             <span style={{ color: 'var(--text)', opacity: 0.7 }}>Raised: </span>
             <span className="font-semibold" style={{ color: 'var(--text)' }}>
-              {project.currency} {totalPledged.toLocaleString()}
+              {project.currency || 'USD'} {totalPledged.toLocaleString()}
             </span>
           </div>
           <div>
             <span style={{ color: 'var(--text)', opacity: 0.7 }}>Goal: </span>
             <span className="font-semibold" style={{ color: 'var(--text)' }}>
-              {project.currency} {goalAmount.toLocaleString()}
+              {project.currency || 'USD'} {goalAmount.toLocaleString()}
             </span>
           </div>
         </div>
@@ -55,7 +59,7 @@ export default function ProjectCard({ project, forceFlipped = false }: ProjectCa
         <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
           <div className="flex justify-between items-center text-xs" style={{ color: 'var(--text)', opacity: 0.6 }}>
             <span>By {creatorName}</span>
-            <span>{format(new Date(project.end_date), 'MMM d, yyyy')}</span>
+            <span>{format(new Date(project.deadline || project.end_date), 'MMM d, yyyy')}</span>
           </div>
         </div>
       </div>
@@ -86,7 +90,7 @@ export default function ProjectCard({ project, forceFlipped = false }: ProjectCa
               </h3>
               <p className="text-sm mb-2" style={{ color: 'var(--primary-text)', opacity: 0.9 }}>Total Pledged</p>
               <p className="text-4xl font-bold mb-2" style={{ color: 'var(--primary-text)' }}>
-                {project.currency} {totalPledged.toLocaleString()}
+                {project.currency || 'USD'} {totalPledged.toLocaleString()}
               </p>
               <div className="mt-4 w-full">
                 <div className="flex justify-between text-sm mb-2" style={{ color: 'var(--primary-text)', opacity: 0.9 }}>
@@ -103,7 +107,7 @@ export default function ProjectCard({ project, forceFlipped = false }: ProjectCa
                   />
                 </div>
                 <p className="text-sm mt-2 text-center" style={{ color: 'var(--primary-text)', opacity: 0.8 }}>
-                  {project.currency} {goalAmount.toLocaleString()} goal
+                  {project.currency || 'USD'} {goalAmount.toLocaleString()} goal
                 </p>
               </div>
             </div>

@@ -20,9 +20,9 @@ export default function Navbar() {
             href="/"
             className="flex items-center gap-2 md:gap-3 text-sm md:text-xl font-bold transition-all duration-300 hover:scale-105 group text-primary"
           >
-            <div className="hidden md:block transition-transform duration-300 group-hover:rotate-12">
-              <CoinModel size="large" />
-            </div>
+            {/* <div className="hidden md:block transition-transform duration-300 group-hover:rotate-12">
+              <CoinModel size="" />
+            </div> */}
             <span className="hidden sm:inline relative">
               Milestone Crowdfunding
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-current transition-all duration-300 group-hover:w-full"></span>

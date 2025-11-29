@@ -62,6 +62,7 @@ export const metadata: Metadata = {
 }
 
 import AOSInit from '@/components/AOSInit'
+import { ReduxProvider } from '@/lib/ReduxProvider'
 
 export default function RootLayout({
   children,
@@ -89,12 +90,14 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <AOSInit />
-        <ThemeProvider>
-          <Navbar />
-          <main className="min-h-screen bg-bg">
-            {children}
-          </main>
-        </ThemeProvider>
+        <ReduxProvider>
+          <ThemeProvider>
+            <Navbar />
+            <main className="min-h-screen bg-bg">
+              {children}
+            </main>
+          </ThemeProvider>
+        </ReduxProvider>
       </body>
     </html>
   )

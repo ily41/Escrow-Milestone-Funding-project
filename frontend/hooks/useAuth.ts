@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser } from '@/lib/api'
+import { useGetCurrentUserQuery } from '@/lib/api'
 import type { User } from '@/lib/types'
 
 export function useAuth() {
@@ -8,55 +8,61 @@ export function useAuth() {
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
 
-    const loadUser = async () => {
-        const token = localStorage.getItem('access_token')
-        if (token) {
-            try {
-                const userData = await getCurrentUser()
-                setUser(userData)
-            } catch (error) {
-                localStorage.removeItem('access_token')
-                localStorage.removeItem('refresh_token')
-                setUser(null)
-            } finally {
-                setLoading(false)
-            }
-        } else {
-            setUser(null)
-            setLoading(false)
-        }
-    }
+    // Check if user is logged in (has token)
+    const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('access_token')
+
+    // Only fetch user data if token exists
+    const { data, error, isLoading } = useGetCurrentUserQuery(undefined, {
+        skip: !hasToken, // Skip query if no token
+    })
 
     useEffect(() => {
-        loadUser()
-
-        // Listen for storage changes (when token is set/removed from other tabs)
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'access_token') {
-                loadUser()
-            }
+        if (!hasToken) {
+            setUser(null)
+            setLoading(false)
+            return
         }
 
-        // Listen for custom login event (same window)
+        if (data) {
+            setUser(data as User)
+            setLoading(false)
+        } else if (error) {
+            // Token might be invalid, clear it
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            setUser(null)
+            setLoading(false)
+        } else if (!isLoading) {
+            setLoading(false)
+        }
+    }, [data, error, isLoading, hasToken])
+
+    // Listen for login/logout events
+    useEffect(() => {
         const handleLogin = () => {
-            loadUser()
+            setLoading(true)
+            // RTK Query will automatically refetch
         }
 
-        window.addEventListener('storage', handleStorageChange)
+        const handleLogout = () => {
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            setUser(null)
+            router.push('/auth/login')
+        }
+
         window.addEventListener('userLogin', handleLogin)
+        window.addEventListener('userLogout', handleLogout)
 
         return () => {
-            window.removeEventListener('storage', handleStorageChange)
             window.removeEventListener('userLogin', handleLogin)
+            window.removeEventListener('userLogout', handleLogout)
         }
-    }, [])
+    }, [router])
 
     const logout = () => {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        setUser(null)
-        router.push('/')
+        window.dispatchEvent(new Event('userLogout'))
     }
 
-    return { user, loading, logout }
+    return { user, loading, logout, isAuthenticated: !!user }
 }

@@ -13,6 +13,7 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.0",
     "@react-three/postprocessing": "^3.0.4",
+    "@reduxjs/toolkit": "^2.11.0",
     "@tailwindcss/vite": "^4.1.17",
     "@types/aos": "^3.0.7",
     "aos": "^2.3.4",
@@ -23,6 +24,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.66.1",
+    "react-redux": "^9.2.0",
     "styled-components": "^6.1.19",
     "three": "^0.181.2"
   },

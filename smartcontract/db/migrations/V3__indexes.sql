@@ -1,0 +1,10 @@
+CREATE INDEX idx_projects_creator      ON PROJECTS(creator_id);
+CREATE INDEX idx_pledges_project       ON PLEDGES(project_id);
+CREATE INDEX idx_pledges_backer        ON PLEDGES(backer_id);
+CREATE INDEX idx_milestones_project    ON MILESTONES(project_id);
+CREATE INDEX idx_votes_milestone       ON VOTES(milestone_id);
+CREATE INDEX idx_votes_backer          ON VOTES(backer_id);
+CREATE INDEX idx_releases_milestone    ON RELEASES(milestone_id);
+CREATE INDEX idx_refunds_project       ON REFUNDS(project_id);
+CREATE INDEX idx_audit_tx              ON AUDIT_LOGS(transaction_hash);
+CREATE INDEX idx_milestones_session    ON MILESTONES(voting_session_id);

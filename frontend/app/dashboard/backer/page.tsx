@@ -1,163 +1,151 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { useGetPledgesQuery, useGetRefundsQuery } from '@/lib/api'
 import Link from 'next/link'
-import { getPledges, getRefunds, getWallets } from '@/lib/api'
-import { getCurrentUser } from '@/lib/api'
-import type { Pledge, Refund, Wallet, User } from '@/lib/types'
-import { format } from 'date-fns'
 
 export default function BackerDashboard() {
-  const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [pledges, setPledges] = useState<Pledge[]>([])
-  const [refunds, setRefunds] = useState<Refund[]>([])
-  const [wallets, setWallets] = useState<Wallet[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user, loading: authLoading } = useAuth()
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  const { data: pledges = [], isLoading: pledgesLoading } = useGetPledgesQuery(
+    { backer: user?.id },
+    { skip: !user }
+  )
 
-  const loadData = async () => {
-    try {
-      const [userData, pledgesData, refundsData, walletsData] = await Promise.all([
-        getCurrentUser(),
-        getPledges(),
-        getRefunds(),
-        getWallets(),
-      ])
-      setUser(userData)
-      setPledges(pledgesData)
-      setRefunds(refundsData)
-      setWallets(walletsData)
-    } catch (error) {
-      console.error('Failed to load data:', error)
-      router.push('/auth/login')
-    } finally {
-      setLoading(false)
-    }
+  const { data: refunds = [], isLoading: refundsLoading } = useGetRefundsQuery(
+    { backer: user?.id },
+    { skip: !user }
+  )
+
+  if (authLoading || pledgesLoading || refundsLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8" style={{ color: 'var(--text)' }}>
+        Loading...
+      </div>
+    )
   }
 
-  if (loading) {
-    return <div className="container mx-auto px-4 py-8 text-gray-900 dark:text-white">Loading...</div>
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="card text-center">
+          <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--text)' }}>
+            Login Required
+          </h2>
+          <p className="mb-4" style={{ color: 'var(--text)', opacity: 0.8 }}>
+            Please login to access your backer dashboard.
+          </p>
+          <Link href="/auth/login" className="btn-primary">
+            Login
+          </Link>
+        </div>
+      </div>
+    )
   }
 
-  const totalPledged = pledges
-    .filter((p) => p.status === 'active')
-    .reduce((sum, p) => sum + parseFloat(p.amount), 0)
-
-  const totalRefunded = refunds
-    .filter((r) => r.status === 'processed')
-    .reduce((sum, r) => sum + parseFloat(r.amount), 0)
-
-  const walletBalance = wallets.reduce((sum, w) => sum + parseFloat(w.balance), 0)
+  const totalPledged = pledges.reduce((sum: number, pledge: any) => sum + parseFloat(pledge.amount || 0), 0)
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8" style={{ color: 'var(--text)' }}>Backer Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-8" style={{ color: 'var(--text)' }}>
+        Backer Dashboard
+      </h1>
 
+      {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="card">
-          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)', opacity: 0.7 }}>Wallet Balance</h3>
+          <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text)', opacity: 0.7 }}>
+            Total Pledged
+          </h3>
           <p className="text-3xl font-bold" style={{ color: 'var(--primary)' }}>
-            ${walletBalance.toLocaleString()}
-          </p>
-        </div>
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)', opacity: 0.7 }}>Total Pledged</h3>
-          <p className="text-3xl font-bold" style={{ color: 'var(--text)' }}>
             ${totalPledged.toLocaleString()}
           </p>
         </div>
         <div className="card">
-          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)', opacity: 0.7 }}>Total Refunded</h3>
-          <p className="text-3xl font-bold" style={{ color: 'var(--success)' }}>
-            ${totalRefunded.toLocaleString()}
+          <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text)', opacity: 0.7 }}>
+            Active Pledges
+          </h3>
+          <p className="text-3xl font-bold" style={{ color: 'var(--text)' }}>
+            {pledges.length}
+          </p>
+        </div>
+        <div className="card">
+          <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text)', opacity: 0.7 }}>
+            Refunds Received
+          </h3>
+          <p className="text-3xl font-bold" style={{ color: 'var(--text)' }}>
+            {refunds.length}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div>
-          <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--text)' }}>My Pledges</h2>
-          {pledges.length === 0 ? (
-            <div className="card text-center py-12">
-              <p className="mb-4" style={{ color: 'var(--text)', opacity: 0.7 }}>You haven't made any pledges yet.</p>
-              <Link href="/projects" className="btn-primary">
-                Browse Projects
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {pledges.map((pledge) => (
-                <div key={pledge.id} className="card">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <Link href={`/projects/${pledge.project.id}`}>
-                        <h3 className="text-lg font-semibold hover:opacity-80 transition-opacity" style={{ color: 'var(--text)' }}>
-                          {pledge.project.title}
-                        </h3>
-                      </Link>
-                      <p className="mt-1" style={{ color: 'var(--text)', opacity: 0.8 }}>
-                        {pledge.currency} {parseFloat(pledge.amount).toLocaleString()}
-                      </p>
-                      <p className="text-sm mt-1" style={{ color: 'var(--text)', opacity: 0.6 }}>
-                        {format(new Date(pledge.created_at), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                    <span className="px-2 py-1 rounded text-xs font-semibold" style={{
-                      backgroundColor: pledge.status === 'active' ? 'var(--success)' : pledge.status === 'refunded' ? 'var(--border)' : 'var(--primary)',
-                      opacity: 0.2,
-                      color: pledge.status === 'active' ? 'var(--success)' : pledge.status === 'refunded' ? 'var(--text)' : 'var(--primary)'
-                    }}>
-                      {pledge.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--text)' }}>Refunds</h2>
-          {refunds.length === 0 ? (
-            <div className="card text-center py-12">
-              <p style={{ color: 'var(--text)', opacity: 0.7 }}>No refunds yet.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {refunds.map((refund) => (
-                <div key={refund.id} className="card">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
-                        {refund.pledge.project.title}
+      {/* My Pledges */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--text)' }}>
+          My Pledges
+        </h2>
+        {pledges.length === 0 ? (
+          <div className="card text-center py-12">
+            <p style={{ color: 'var(--text)', opacity: 0.7 }}>
+              You haven't made any pledges yet.
+            </p>
+            <Link href="/projects" className="btn-primary mt-4 inline-block">
+              Explore Projects
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pledges.map((pledge: any) => (
+              <div key={pledge.pledge_id} className="card">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <Link href={`/projects/${pledge.project_id}`}>
+                      <h3 className="text-xl font-semibold hover:opacity-80 transition-opacity" style={{ color: 'var(--text)' }}>
+                        {pledge.project_title || `Project #${pledge.project_id}`}
                       </h3>
-                      <p className="mt-1" style={{ color: 'var(--text)', opacity: 0.8 }}>{refund.reason}</p>
-                      <p className="text-sm mt-1" style={{ color: 'var(--text)', opacity: 0.7 }}>
-                        Amount: ${parseFloat(refund.amount).toLocaleString()}
-                      </p>
-                      <p className="text-sm" style={{ color: 'var(--text)', opacity: 0.7 }}>
-                        {format(new Date(refund.created_at), 'MMM d, yyyy')}
-                      </p>
+                    </Link>
+                    <div className="mt-2 flex gap-4 text-sm" style={{ color: 'var(--text)', opacity: 0.7 }}>
+                      <span>Amount: ${parseFloat(pledge.amount || '0').toLocaleString()}</span>
+                      <span>Date: {new Date(pledge.pledged_at || pledge.created_at || Date.now()).toLocaleDateString()}</span>
+                      <span className="capitalize">Status: {typeof pledge.status === 'number' ? (pledge.status === 1 ? 'active' : 'inactive') : pledge.status}</span>
                     </div>
-                    <span className="px-2 py-1 rounded text-xs font-semibold" style={{
-                      backgroundColor: refund.status === 'processed' ? 'var(--success)' : refund.status === 'requested' ? 'var(--secondary)' : 'var(--primary)',
-                      opacity: 0.2,
-                      color: refund.status === 'processed' ? 'var(--success)' : refund.status === 'requested' ? 'var(--text)' : 'var(--primary)'
-                    }}>
-                      {refund.status}
-                    </span>
+                  </div>
+                  <Link href={`/projects/${pledge.project_id}`} className="btn-secondary text-sm">
+                    View Project
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Refunds */}
+      {refunds.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--text)' }}>
+            Refunds
+          </h2>
+          <div className="space-y-4">
+            {refunds.map((refund: any) => (
+              <div key={refund.refund_id} className="card">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+                      Refund for {refund.project_title || `Project #${refund.project_id}`}
+                    </h3>
+                    <div className="mt-2 flex gap-4 text-sm" style={{ color: 'var(--text)', opacity: 0.7 }}>
+                      <span>Amount: ${parseFloat(refund.amount || '0').toLocaleString()}</span>
+                      <span>Date: {new Date(refund.refunded_at || refund.processed_at || refund.requested_at || Date.now()).toLocaleDateString()}</span>
+                      <span className="capitalize">Status: {typeof refund.status === 'number' ? (refund.status === 1 ? 'processed' : 'requested') : refund.status}</span>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
