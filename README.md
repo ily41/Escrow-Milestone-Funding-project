@@ -96,7 +96,6 @@ App available at: `http://localhost:3000`
  -->
 
 
-<div align="center">
 
 ███████╗ ██████╗██████╗  ██████╗ ██╗    ██╗
 ██╔════╝██╔════╝██╔══██╗██╔═══██╗██║    ██║
@@ -110,7 +109,6 @@ App available at: `http://localhost:3000`
      ██║╚██╔╝██║██║██║     ██╔══╝  ╚════██║
      ██║ ╚═╝ ██║██║███████╗███████╗███████║
      ╚═╝     ╚═╝╚═╝╚══════╝╚══════╝╚══════╝
-</div>
 
 <div align="center">
 # 🚀 Milestone-Based Crowdfunding Platform  
