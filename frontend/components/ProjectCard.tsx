@@ -11,13 +11,13 @@ export default function ProjectCard({ project, forceFlipped = false }: ProjectCa
   const progress = project.progress_percentage || 0
   const totalPledged = parseFloat(project.total_pledged || project.current_funding || '0')
   const goalAmount = parseFloat(project.goal_amount || project.funding_goal || '0')
-  
+
   // Handle both full creator object and creator_display_name/creator_name field
-  const creatorName = (project as any).creator_display_name || 
-                     (project as any).creator_name ||
-                     project.creator?.display_name || 
-                     project.creator?.name ||
-                     'Unknown Creator'
+  const creatorName = (project as any).creator_display_name ||
+    (project as any).creator_name ||
+    project.creator?.display_name ||
+    project.creator?.name ||
+    'Unknown Creator'
 
   const projectId = project.project_id || (project as any).id
 
@@ -27,7 +27,7 @@ export default function ProjectCard({ project, forceFlipped = false }: ProjectCa
       <div className="md:hidden card hover:shadow-lg transition-shadow cursor-pointer h-full">
         <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text)' }}>{project.title}</h3>
         <p className="mb-4 line-clamp-3" style={{ color: 'var(--text)', opacity: 0.8 }}>{project.description}</p>
-        
+
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-1">
             <span style={{ color: 'var(--text)', opacity: 0.7 }}>Progress</span>
@@ -84,31 +84,71 @@ export default function ProjectCard({ project, forceFlipped = false }: ProjectCa
 
           {/* Back Side - Pledge Amount and Project Name */}
           <div className="flip-card-back">
-            <div className="flex flex-col justify-center items-center h-full p-6">
-              <h3 className="text-xl font-bold mb-4 text-center" style={{ color: 'var(--primary-text)' }}>
+            <div className="flex flex-col h-full p-6 overflow-y-auto custom-scrollbar">
+              <h3 className="text-xl font-bold mb-2 text-center sticky top-0 bg-inherit z-10" style={{ color: 'var(--primary-text)' }}>
                 {project.title}
               </h3>
-              <p className="text-sm mb-2" style={{ color: 'var(--primary-text)', opacity: 0.9 }}>Total Pledged</p>
-              <p className="text-4xl font-bold mb-2" style={{ color: 'var(--primary-text)' }}>
-                {project.currency || 'USD'} {totalPledged.toLocaleString()}
-              </p>
-              <div className="mt-4 w-full">
+
+              <div className="flex-shrink-0 mb-4 text-center">
+                <p className="text-sm mb-1" style={{ color: 'var(--primary-text)', opacity: 0.9 }}>Total Pledged</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--primary-text)' }}>
+                  {project.currency || 'USD'} {totalPledged.toLocaleString()}
+                </p>
+              </div>
+
+              {/* Milestones Section */}
+              <div className="w-full mt-2">
+                <h4 className="text-sm font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--primary-text)', opacity: 0.9 }}>
+                  Milestones
+                </h4>
+                {project.milestones && project.milestones.length > 0 ? (
+                  <div className="space-y-2">
+                    {project.milestones.map((milestone) => (
+                      <div
+                        key={milestone.milestone_id || (milestone as any).id}
+                        className="p-2 rounded text-sm"
+                        style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-medium truncate flex-1 mr-2" style={{ color: 'var(--primary-text)' }}>
+                            {milestone.title}
+                          </span>
+                          <span className="text-xs px-1.5 py-0.5 rounded uppercase"
+                            style={{
+                              backgroundColor: milestone.status === 'completed' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 0.2)',
+                              color: 'var(--primary-text)'
+                            }}>
+                            {milestone.status}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs" style={{ color: 'var(--primary-text)', opacity: 0.8 }}>
+                          <span>Amt: {milestone.funding_amount || (milestone as any).amount}</span>
+                          <span>{milestone.percentage}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm italic text-center" style={{ color: 'var(--primary-text)', opacity: 0.7 }}>
+                    No milestones yet
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-auto pt-4 w-full">
                 <div className="flex justify-between text-sm mb-2" style={{ color: 'var(--primary-text)', opacity: 0.9 }}>
                   <span>Goal</span>
                   <span>{progress.toFixed(1)}%</span>
                 </div>
-                <div className="w-full rounded-full h-3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.3)' }}>
+                <div className="w-full rounded-full h-2" style={{ backgroundColor: 'rgba(255, 255, 255, 0.3)' }}>
                   <div
-                    className="h-3 rounded-full transition-all"
-                    style={{ 
-                      width: `${Math.min(progress, 100)}%`, 
-                      backgroundColor: 'var(--primary-text)' 
+                    className="h-2 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(progress, 100)}%`,
+                      backgroundColor: 'var(--primary-text)'
                     }}
                   />
                 </div>
-                <p className="text-sm mt-2 text-center" style={{ color: 'var(--primary-text)', opacity: 0.8 }}>
-                  {project.currency || 'USD'} {goalAmount.toLocaleString()} goal
-                </p>
               </div>
             </div>
           </div>

@@ -81,14 +81,36 @@ export const api = createApi({
     // Milestone endpoints
     getMilestones: builder.query({
       query: (params) => {
-        // Backend expects 'project' parameter, which should be the project_id (UUID)
-        const projectParam = params?.project_id || params?.project
-        return {
-          url: '/api/projects/milestones/',
-          params: projectParam ? { project: projectParam } : undefined,
+        const projectId = params?.project_id || params?.project
+        if (!projectId) {
+          throw new Error('project_id is required')
         }
+        return `/api/projects/${projectId}/milestones/`
       },
       providesTags: ['Milestone'],
+    }),
+    createMilestone: builder.mutation({
+      query: ({ projectId, ...milestoneData }) => ({
+        url: `/api/projects/${projectId}/milestones/create/`,
+        method: 'POST',
+        body: milestoneData,
+      }),
+      invalidatesTags: ['Milestone', 'Project'],
+    }),
+    updateMilestone: builder.mutation({
+      query: ({ projectId, milestoneId, ...milestoneData }) => ({
+        url: `/api/projects/${projectId}/milestones/${milestoneId}/`,
+        method: 'PUT',
+        body: milestoneData,
+      }),
+      invalidatesTags: ['Milestone', 'Project'],
+    }),
+    deleteMilestone: builder.mutation({
+      query: ({ projectId, milestoneId }) => ({
+        url: `/api/projects/${projectId}/milestones/${milestoneId}/delete/`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Milestone', 'Project'],
     }),
     approveMilestone: builder.mutation({
       query: ({ id, ...approvalData }) => ({
@@ -131,10 +153,10 @@ export const api = createApi({
 
     // Vote endpoints
     voteOnMilestone: builder.mutation({
-      query: (voteData) => ({
-        url: '/governance/votes/',
+      query: ({ milestone_id, decision }) => ({
+        url: `/api/projects/milestones/${milestone_id}/vote/`,
         method: 'POST',
-        body: voteData,
+        body: { decision },
       }),
       invalidatesTags: ['Vote', 'Milestone'],
     }),
@@ -184,6 +206,9 @@ export const {
   useActivateProjectMutation,
   useDeactivateProjectMutation,
   useGetMilestonesQuery,
+  useCreateMilestoneMutation,
+  useUpdateMilestoneMutation,
+  useDeleteMilestoneMutation,
   useApproveMilestoneMutation,
   useGetPledgesQuery,
   useCreatePledgeMutation,

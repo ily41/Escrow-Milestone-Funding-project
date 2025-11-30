@@ -57,6 +57,7 @@ export interface Milestone {
   order_index?: number
   approve_votes_count?: number
   reject_votes_count?: number
+  percentage?: number
 }
 
 export interface Pledge {

@@ -23,40 +23,38 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
   const [showPledgeForm, setShowPledgeForm] = useState(false)
   const [showUpdateForm, setShowUpdateForm] = useState(false)
 
-  const { data: milestones = [], refetch: refetchMilestones } = useGetMilestonesQuery({ project_id: project.project_id || project.id })
-  const { data: updates = [], refetch: refetchUpdates } = useGetUpdatesQuery({ project_id: project.project_id || project.id })
+  const { data: milestones = [], refetch: refetchMilestones } = useGetMilestonesQuery({ project_id: project.project_id })
+  const { data: updates = [], refetch: refetchUpdates } = useGetUpdatesQuery({ project_id: project.project_id })
 
   const [createPledge, { isLoading: isPledging }] = useCreatePledgeMutation()
   const [createUpdate, { isLoading: isCreatingUpdate }] = useCreateUpdateMutation()
 
-  const isCreator = user?.id === (project as any)?.creator_id || user?.id === (project as any)?.creator?.id
+  const isCreator = user?.id === project?.creator_id
 
   const handlePledge = async (amount: number) => {
     try {
-      await createPledge({ projectId: project.project_id || (project as any).id, amount }).unwrap()
+      await createPledge({ projectId: project.project_id, amount }).unwrap()
       setShowPledgeForm(false)
       alert('Pledge created successfully!')
     } catch (error: any) {
-      const errorMessage = error?.data?.error || error?.data?.message || error?.error || 'Failed to create pledge'
-      alert(errorMessage)
+      alert(error.data?.error || 'Failed to create pledge')
     }
   }
 
   const handleCreateUpdate = async (title: string, content: string) => {
     try {
-      await createUpdate({ projectId: project.project_id || (project as any).id, title, content }).unwrap()
+      await createUpdate({ projectId: project.project_id, title, content }).unwrap()
       setShowUpdateForm(false)
       refetchUpdates()
       alert('Update created successfully!')
     } catch (error: any) {
-      const errorMessage = error?.data?.error || error?.data?.message || error?.error || 'Failed to create update'
-      alert(errorMessage)
+      alert(error.data?.error || 'Failed to create update')
     }
   }
 
   const progress = project.progress_percentage || 0
-  const totalPledged = parseFloat(project.total_pledged || project.current_funding || '0')
-  const goalAmount = parseFloat(project.goal_amount || project.funding_goal || '0')
+  const totalPledged = parseFloat(project.total_pledged || '0')
+  const goalAmount = parseFloat(project.goal_amount)
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -66,8 +64,18 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
 
         <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--text)', opacity: 0.7 }}>
           <span>Status: <span className="font-semibold capitalize">{project.status}</span></span>
-          <span>•</span>
-          <span>Ends: {format(new Date(project.deadline || project.end_date), 'MMM d, yyyy')}</span>
+          {(project.deadline || project.end_date) && (
+            <>
+              <span>•</span>
+              <span>Ends: {(() => {
+                const dateStr = project.deadline || project.end_date
+                if (!dateStr) return 'N/A'
+                const date = new Date(dateStr)
+                if (isNaN(date.getTime())) return 'N/A'
+                return format(date, 'MMM d, yyyy')
+              })()}</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -79,7 +87,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
               <div className="flex justify-between text-sm mb-2">
                 <span style={{ color: 'var(--text)', opacity: 0.7 }}>Raised</span>
                 <span className="font-semibold text-lg" style={{ color: 'var(--text)' }}>
-                  {project.currency || 'USD'} {totalPledged.toLocaleString()}
+                  {project.currency} {totalPledged.toLocaleString()}
                 </span>
               </div>
               <div className="w-full rounded-full h-4" style={{ backgroundColor: 'var(--border)' }}>
@@ -89,7 +97,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
                 />
               </div>
               <div className="flex justify-between text-sm mt-2" style={{ color: 'var(--text)', opacity: 0.7 }}>
-                <span>Goal: {project.currency || 'USD'} {goalAmount.toLocaleString()}</span>
+                <span>Goal: {project.currency} {goalAmount.toLocaleString()}</span>
                 <span>{progress.toFixed(1)}%</span>
               </div>
             </div>
@@ -107,7 +115,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
               <div className="mt-4">
                 <PledgeForm
                   onSubmit={handlePledge}
-                  currency={project.currency || 'USD'}
+                  currency={project.currency}
                   loading={isPledging}
                 />
               </div>
@@ -122,9 +130,9 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
               <div className="space-y-4">
                 {milestones.map((milestone: any) => (
                   <MilestoneCard
-                    key={milestone.milestone_id || (milestone as any).id}
+                    key={milestone.milestone_id}
                     milestone={milestone}
-                    projectId={project.project_id || (project as any).id}
+                    projectId={project.project_id}
                     onUpdate={refetchMilestones}
                   />
                 ))}
@@ -157,7 +165,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
             ) : (
               <div className="space-y-4">
                 {updates.map((update: any) => (
-                  <UpdateCard key={update.update_id || (update as any).id} update={update} />
+                  <UpdateCard key={update.update_id} update={update} />
                 ))}
               </div>
             )}
@@ -171,13 +179,13 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text)', opacity: 0.7 }}>Total Pledged</span>
                 <span className="font-semibold" style={{ color: 'var(--text)' }}>
-                  {project.currency || 'USD'} {totalPledged.toLocaleString()}
+                  {project.currency} {totalPledged.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text)', opacity: 0.7 }}>Goal</span>
                 <span className="font-semibold" style={{ color: 'var(--text)' }}>
-                  {project.currency || 'USD'} {goalAmount.toLocaleString()}
+                  {project.currency} {goalAmount.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between">
