@@ -5,7 +5,7 @@ from channels.auth import AuthMiddlewareStack
 from django.urls import path
 from api.consumers import EventsConsumer
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'escrow_backend.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend_core.settings')
 
 django_asgi_app = get_asgi_application()
 

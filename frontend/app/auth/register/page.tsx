@@ -15,8 +15,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     password2: '',
-    is_creator: false,
-    wallet_address: '',
+    role: 'backer' as 'creator' | 'backer',
   })
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -32,7 +31,9 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(formData).unwrap()
+      // Send only the fields the backend expects
+      const { password2, ...registrationData } = formData
+      await register(registrationData).unwrap()
 
       // Auto-login after registration
       const loginResult = await login({
@@ -167,37 +168,44 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="wallet_address" className="block text-sm font-medium" style={{ color: 'var(--text)' }}>
-                Wallet Address (Ethereum)
+              <label className="block text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>
+                Account Type
               </label>
-              <input
-                id="wallet_address"
-                name="wallet_address"
-                type="text"
-                required
-                placeholder="0x..."
-                value={formData.wallet_address}
-                onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
-                className="input-field mt-1"
-              />
-              <p className="mt-1 text-xs" style={{ color: 'var(--text)', opacity: 0.6 }}>
-                Required for pledging and creating projects.
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <input
+                    id="role_backer"
+                    name="role"
+                    type="radio"
+                    value="backer"
+                    checked={formData.role === 'backer'}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value as 'creator' | 'backer' })}
+                    className="h-4 w-4"
+                    style={{ accentColor: 'var(--primary)' }}
+                  />
+                  <label htmlFor="role_backer" className="ml-2 block text-sm" style={{ color: 'var(--text)' }}>
+                    Backer - I want to fund projects
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    id="role_creator"
+                    name="role"
+                    type="radio"
+                    value="creator"
+                    checked={formData.role === 'creator'}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value as 'creator' | 'backer' })}
+                    className="h-4 w-4"
+                    style={{ accentColor: 'var(--primary)' }}
+                  />
+                  <label htmlFor="role_creator" className="ml-2 block text-sm" style={{ color: 'var(--text)' }}>
+                    Creator - I want to create projects
+                  </label>
+                </div>
+              </div>
+              <p className="mt-2 text-xs" style={{ color: 'var(--text)', opacity: 0.6 }}>
+                You can link your wallet address after registration.
               </p>
-            </div>
-
-            <div className="flex items-center">
-              <input
-                id="is_creator"
-                name="is_creator"
-                type="checkbox"
-                checked={formData.is_creator}
-                onChange={(e) => setFormData({ ...formData, is_creator: e.target.checked })}
-                className="h-4 w-4 rounded"
-                style={{ accentColor: 'var(--primary)' }}
-              />
-              <label htmlFor="is_creator" className="ml-2 block text-sm" style={{ color: 'var(--text)' }}>
-                I want to create projects (Creator)
-              </label>
             </div>
           </div>
 

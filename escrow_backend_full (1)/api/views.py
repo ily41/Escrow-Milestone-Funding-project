@@ -70,7 +70,7 @@ class ProjectCreateView(APIView):
             escrow_address="0x0000000000000000000000000000000000000000",
             funding_goal=data['funding_goal_eth'],
             deadline=deadline,
-            status="created"
+            status=data.get('status', 'active')
         )
 
         tx_hash = fake_tx_hash()
@@ -93,6 +93,21 @@ class MilestoneCreateView(APIView):
 
         if not profile.wallet_address:
             return Response({"detail": "Creator wallet not linked"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Temporary fix: Save to DB directly
+        try:
+            project = Project.objects.using('indexer').get(project_id=project_id)
+        except Project.DoesNotExist:
+            return Response({"detail": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        data = serializer.validated_data
+        Milestone.objects.using('indexer').create(
+            project=project,
+            title=data['title'],
+            description=data.get('description', ''),
+            percentage=data['percentage'],
+            status="pending"
+        )
 
         tx_hash = fake_tx_hash()
 
@@ -222,3 +237,19 @@ class AdminMetricsView(APIView):
     @extend_schema(summary="Admin metrics placeholder")
     def get(self, request):
         return Response({'status': 'ok', 'message': 'metrics endpoint placeholder'})
+
+class ProjectStatusUpdateView(APIView):
+    @extend_schema(summary="Update project status")
+    def post(self, request, project_id):
+        status_value = request.data.get('status')
+        if status_value not in ['active', 'inactive']:
+            return Response({'detail': 'Invalid status. Must be active or inactive.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            project = Project.objects.using('indexer').get(project_id=project_id)
+            project.status = status_value
+            project.save(using='indexer')
+            return Response(ProjectSerializer(project).data)
+        except Project.DoesNotExist:
+            return Response({'detail': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+

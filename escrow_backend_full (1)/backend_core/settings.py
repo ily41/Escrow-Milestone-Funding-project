@@ -6,9 +6,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'change-me-in-production'
 DEBUG = True
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -68,17 +69,37 @@ SPECTACULAR_SETTINGS = {
 }
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'monitoring.middleware.RequestLoggingMiddleware',
+    "corsheaders.middleware.CorsMiddleware",  # MUST BE FIRST
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+
+    "monitoring.middleware.RequestLoggingMiddleware",  # MUST BE LAST
 ]
 
-ROOT_URLCONF = 'escrow_backend.urls'
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    "content-type",
+    "authorization",
+    "x-csrftoken",
+    "accept",
+    "accept-encoding",
+    "cache-control",
+]
+
+ROOT_URLCONF = 'backend_core.urls'
 
 TEMPLATES = [
     {
@@ -96,8 +117,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'escrow_backend.wsgi.application'
-ASGI_APPLICATION = 'escrow_backend.asgi.application'
+WSGI_APPLICATION = 'backend_core.wsgi.application'
+ASGI_APPLICATION = 'backend_core.asgi.application'
 
 DATABASES = {
     'default': {

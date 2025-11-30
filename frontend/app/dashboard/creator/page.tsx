@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import CustomSelect from '@/components/CustomSelect'
 import { useConfirm } from '@/hooks/useConfirm'
+import AuthGuard from '@/components/AuthGuard'
 
 export default function CreatorDashboard() {
   const router = useRouter()
@@ -121,7 +122,7 @@ export default function CreatorDashboard() {
   }
 
   return (
-    <>
+    <AuthGuard requiredRole="creator">
       {ConfirmComponent}
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
@@ -269,6 +270,6 @@ export default function CreatorDashboard() {
           )}
         </div>
       </div>
-    </>
+    </AuthGuard>
   )
 }

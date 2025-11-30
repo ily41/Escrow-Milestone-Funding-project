@@ -5,6 +5,7 @@ from .views import (
     ProjectCreateView, MilestoneCreateView, PledgeCreateView,
     HistoryView, TransactionDetailView,
     AdminResolveView, AdminLogsView, AdminMetricsView,
+    ProjectStatusUpdateView,
 )
 
 urlpatterns = [
@@ -20,4 +21,5 @@ urlpatterns = [
     path("admin/resolve", AdminResolveView.as_view(), name="admin-resolve"),
     path("admin/logs", AdminLogsView.as_view(), name="admin-logs"),
     path("admin/metrics", AdminMetricsView.as_view(), name="admin-metrics"),
+    path("projects/<str:project_id>/status/", ProjectStatusUpdateView.as_view(), name="project-status-update"),
 ]

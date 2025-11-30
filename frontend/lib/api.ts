@@ -1,6 +1,6 @@
 ﻿import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const getAuthToken = () => {
   if (typeof window !== 'undefined') {
@@ -26,38 +26,38 @@ export const api = createApi({
     // Auth endpoints
     login: builder.mutation({
       query: (credentials) => ({
-        url: '/token/',
+        url: '/auth/login/',
         method: 'POST',
         body: credentials,
       }),
     }),
     register: builder.mutation({
       query: (userData) => ({
-        url: '/users/register/',
+        url: '/auth/register/',
         method: 'POST',
         body: userData,
       }),
     }),
     getCurrentUser: builder.query({
-      query: () => '/users/me/',
+      query: () => '/auth/me/',
       providesTags: ['User'],
     }),
 
     // Project endpoints
     getProjects: builder.query({
       query: (params) => ({
-        url: '/projects/',
+        url: '/api/projects/',
         params: params || {},
       }),
       providesTags: ['Project'],
     }),
     getProject: builder.query({
-      query: (id) => `/projects/${id}/`,
+      query: (id) => `/api/projects/${id}/`,
       providesTags: (result, error, id) => [{ type: 'Project', id }],
     }),
     createProject: builder.mutation({
       query: (projectData) => ({
-        url: '/projects/',
+        url: '/api/projects/',
         method: 'POST',
         body: projectData,
       }),
@@ -65,14 +65,14 @@ export const api = createApi({
     }),
     activateProject: builder.mutation({
       query: (id) => ({
-        url: `/projects/${id}/activate/`,
+        url: `/api/projects/${id}/activate/`,
         method: 'POST',
       }),
       invalidatesTags: (result, error, id) => [{ type: 'Project', id }, 'Project'],
     }),
     deactivateProject: builder.mutation({
       query: (id) => ({
-        url: `/projects/${id}/deactivate/`,
+        url: `/api/projects/${id}/deactivate/`,
         method: 'POST',
       }),
       invalidatesTags: (result, error, id) => [{ type: 'Project', id }, 'Project'],
@@ -84,7 +84,7 @@ export const api = createApi({
         // Backend expects 'project' parameter, which should be the project_id (UUID)
         const projectParam = params?.project_id || params?.project
         return {
-          url: '/projects/milestones/',
+          url: '/api/projects/milestones/',
           params: projectParam ? { project: projectParam } : undefined,
         }
       },
@@ -92,7 +92,7 @@ export const api = createApi({
     }),
     approveMilestone: builder.mutation({
       query: ({ id, ...approvalData }) => ({
-        url: `/projects/milestones/${id}/approve/`,
+        url: `/api/projects/milestones/${id}/approve/`,
         method: 'POST',
         body: approvalData,
       }),
@@ -109,7 +109,7 @@ export const api = createApi({
     }),
     createPledge: builder.mutation({
       query: ({ projectId, amount, ...pledgeData }) => ({
-        url: `/projects/${projectId}/pledge/`,
+        url: `/api/projects/${projectId}/pledge/`,
         method: 'POST',
         body: { amount, ...pledgeData },
       }),
@@ -140,7 +140,7 @@ export const api = createApi({
     }),
     openVoting: builder.mutation({
       query: ({ milestoneId }) => ({
-        url: `/projects/milestones/${milestoneId}/open-voting/`,
+        url: `/api/projects/milestones/${milestoneId}/open-voting/`,
         method: 'POST',
       }),
       invalidatesTags: ['Milestone', 'Vote'],
@@ -149,7 +149,7 @@ export const api = createApi({
     // Fund release
     releaseFunds: builder.mutation({
       query: ({ milestoneId }) => ({
-        url: `/projects/milestones/${milestoneId}/release-funds/`,
+        url: `/api/projects/milestones/${milestoneId}/release-funds/`,
         method: 'POST',
       }),
       invalidatesTags: ['Milestone', 'Project'],
