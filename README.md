@@ -173,5 +173,4 @@ MIT — free to modify, improve, and build on.
 ---
 
 ## 💙 Credits
-Built with ❤️ by **Rauf İlyayi**  
 Full-stack developer & Web3 enthusiast.
