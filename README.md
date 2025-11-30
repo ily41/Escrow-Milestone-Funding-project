@@ -1,7 +1,5 @@
-# 🚀 Milestone-Based Crowdfunding Platform
-# Blockchain-Powered • Event-Indexed • Full-Stack Escrow System
-
-<div align="center">
+# 🚀 Milestone-Based Crowdfunding Platform  
+### <sup>Blockchain-Powered • Event-Indexed • Full-Stack Escrow System</sup>
 
 ![Solidity](https://img.shields.io/badge/Solidity-%23363636.svg?style=for-the-badge&logo=solidity&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-092E20.svg?style=for-the-badge&logo=django&logoColor=white)
@@ -9,151 +7,171 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-%23336791.svg?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Hardhat](https://img.shields.io/badge/Hardhat-FFCC00.svg?style=for-the-badge&logo=ethereum&logoColor=black)
 
-</div>
-
 ---
 
 ## 🌟 Overview
 
-This is a **milestone-based crowdfunding platform** where the **Smart Contract is the source of truth**.
+This is a **milestone-based crowdfunding platform** where the **Smart Contract is the source of truth**.  
+Users interact with the blockchain for pledging, voting, releasing funds, and refunds — and an **Indexer** syncs events into PostgreSQL for fast querying.
 
-✔ Creators launch projects  
-✔ Backers pledge directly to blockchain  
-✔ Milestones must be approved to release funds  
-✔ Indexer listens to contract events and updates PostgreSQL  
-✔ Backend provides REST API + builds blockchain transactions  
-✔ Frontend interacts with Wallet + API  
+✔ **Creator launches projects**  
+✔ **Backers pledge directly to blockchain**  
+✔ **Milestones must be approved to release funds**  
+✔ **Indexer listens to on-chain events**  
+✔ **Backend exposes API + builds blockchain transactions**  
+✔ **Frontend consumes the API + wallet interactions**
 
 ---
 
-## 🏗️ Architecture (High-Level)
+## 🏗️ Architecture
 
+```
 Frontend (Next.js)
-│
+        │
 Backend API (Django)
-│
-PostgreSQL ← Indexer (Node.js listens to events)
-↑
-Smart Contract (Solidity / Hardhat)
+        │
+PostgreSQL  ←  Indexer (Node.js listens to smart contract events)
+        ↑
+Smart Contract (Hardhat / Solidity)
+```
 
-yaml
-Copy code
-
-### 🔧 Components
+### Components
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| Smart Contract | Solidity, Hardhat | Escrow logic + milestones |
-| Indexer | Node.js, Ethers.js | Sync blockchain events → DB |
-| Database | PostgreSQL | Indexed, normalized project data |
-| Backend | Django REST | API + JWT + transaction builder |
-| Frontend | Next.js, Wagmi | Wallet UI + app interface |
+| **Smart Contract** | Solidity, Hardhat | Core escrow logic, holds funds |
+| **Indexer** | Node.js, Ethers.js | Listens to events → stores in PostgreSQL |
+| **Database** | PostgreSQL | Indexed + query optimized storage |
+| **Backend** | Django REST | API + builds blockchain tx payloads |
+| **Frontend** | Next.js, Wagmi | User interface |
 
 ---
 
 ## ⚙️ Features
 
 ### 🎯 Creator Features
-- Create project  
-- Add milestones  
-- Receive funds after milestone approval  
-- Monitor pledges  
+- Create new projects  
+- Define milestone structure  
+- Track milestone progress  
+- Receive funds after approval  
 
 ### 💸 Backer Features
-- Pledge ETH  
-- Vote to approve milestones  
-- Track pledge history  
-- Refund if project fails  
+- Pledge using wallet  
+- Track project progress  
+- Vote on milestone release  
+- Request refund when goal is not met  
 
-### 🛠 Developer Features
-- Modular smart contracts  
-- Node.js event indexer  
-- PostgreSQL multi-database config  
-- Swagger UI for API  
-- Clean REST architecture  
+### 🛠️ Developer Features
+- Clean modular smart contracts  
+- Indexer with event-based syncing  
+- REST API with Swagger UI  
+- JWT authentication  
+- PostgreSQL multi-database setup  
 
 ---
 
 ## 🚀 Quick Start
 
-### 1️⃣ Clone Project
+### 1️⃣ Clone the project
 ```bash
 git clone https://github.com/your-user/your-repo.git
 cd your-repo
-📦 Smart Contracts (Hardhat)
-bash
-Copy code
+```
+
+---
+
+## 📦 Smart Contract Setup
+```bash
 cd smartcontract
 npm install
 npx hardhat node
 npx hardhat run scripts/deploy.js --network localhost
-🔄 Indexer Setup
-bash
-Copy code
+```
+
+---
+
+## 🔄 Indexer Setup
+```bash
 cd smartcontract/worker
 node apply_migrations.js
 node indexer.js
-🐍 Backend Setup (Django)
-bash
-Copy code
+```
+
+---
+
+## 🐍 Backend Setup (Django)
+```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate    # Windows
+venv\Scriptsctivate     # Windows
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
-Swagger Docs → http://127.0.0.1:8000/api/docs
+```
 
-💻 Frontend Setup (Next.js)
-bash
-Copy code
+➡ Swagger Docs → http://127.0.0.1:8000/api/docs
+
+---
+
+## 💻 Frontend Setup (Next.js)
+```bash
 cd frontend
 npm install
 npm run dev
-Frontend → http://localhost:3000
+```
 
-🔥 API Endpoints
-📁 Projects
-GET /api/projects/
+➡ Frontend → http://localhost:3000
 
-POST /api/projects/create/
+---
 
-📌 Milestones
-GET /api/projects/{id}/milestones/
+## 🔥 API Endpoints (Important)
 
-POST /api/milestones/{id}/approve/
+### **Projects**
+- `GET /api/projects/`
+- `POST /api/projects/create/`
 
-💸 Pledges
-POST /api/projects/{id}/pledge/
+### **Milestones**
+- `GET /api/projects/{id}/milestones/`
+- `POST /api/milestones/{id}/approve/`
 
-🔐 Authentication
-POST /auth/register/
+### **Pledges**
+- `POST /api/projects/{id}/pledge/`
 
-POST /auth/login/
+### **Authentication**
+- `POST /auth/register/`
+- `POST /auth/login/`
+- `GET /auth/me/`
 
-GET /auth/me/
+---
 
-🧩 Tech Stack
-Category	Technologies
-Frontend	Next.js, Wagmi, Tailwind
-Backend	Django REST, PostgreSQL
-Smart Contracts	Solidity, Hardhat
-Indexer	Node.js, Ethers.js
-Auth	JWT, SimpleJWT
-Tools	Swagger, GraphQL
+## 🧩 Tech Stack
 
-🛡️ Security
-JWT Authentication
+| Category | Tech |
+|----------|------|
+| Frontend | Next.js, Wagmi, Tailwind |
+| Backend | Django REST, PostgreSQL |
+| Smart Contracts | Solidity, Hardhat |
+| Indexer | Node.js, Ethers.js |
+| Auth | JWT, DRF SimpleJWT |
+| Tools | Swagger, GraphQL, Channels |
 
-Role-based access (Creator / Backer)
+---
 
-Contract-level protection:
+## 🛡️ Security
+- Role-based access (Creator / Backer)
+- Secure JWT auth
+- Smart contract protections:
+  - Reentrancy protection  
+  - Milestone validation  
+  - Strict access modifiers  
 
-Reentrancy guards
+---
 
-Access modifiers
+## 📝 License
+MIT — free to modify, improve, and build on.
 
-Milestone verification
+---
 
-📝 License
-MIT — free to modify and use.
+## 💙 Credits
+Built with ❤️ by **Rauf İlyayi**  
+Full-stack developer & Web3 enthusiast.
