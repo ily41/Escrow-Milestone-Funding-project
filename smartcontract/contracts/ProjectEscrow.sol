@@ -52,6 +52,7 @@ contract ProjectEscrow {
         uint256 currentFunding;
         uint256 deadline;
         ProjectStatus status;
+        bool hasActiveMilestones;
     }
 
 
@@ -81,6 +82,11 @@ contract ProjectEscrow {
         uint256 indexed milestoneId,
         string title,
         uint256 amount
+    );
+
+    event MilestoneActivated(
+        uint256 indexed projectId,
+        uint256 indexed milestoneId
     );
 
     event VoteCast(
@@ -135,7 +141,8 @@ contract ProjectEscrow {
             fundingGoal: fundingGoalWei,
             currentFunding: 0,
             deadline: deadlineTimestamp,
-            status: ProjectStatus.Active
+            status: ProjectStatus.Active,
+            hasActiveMilestones: false
         });
 
         emit ProjectCreated(id, msg.sender, fundingGoalWei, deadlineTimestamp);
@@ -148,6 +155,7 @@ contract ProjectEscrow {
         require(p.creator != address(0), "Project not found");
         require(block.timestamp < p.deadline, "Funding ended");
         require(msg.value > 0, "Send ETH");
+        require(p.hasActiveMilestones, "No active milestones");
 
         p.currentFunding += msg.value;
         pledges[projectId][msg.sender] += msg.value;
@@ -171,7 +179,14 @@ contract ProjectEscrow {
         emit MilestoneSubmitted(projectId, mileStoneId, title, amountWei);
     }
 
-
+    function activateMilestone(
+        uint256 projectId,
+        uint256 milestoneId
+    ) external onlyCreator(projectId) {
+        IMilestones(milestonesContract).activateMilestone(projectId, milestoneId);
+        projects[projectId].hasActiveMilestones = true;
+        emit MilestoneActivated(projectId, milestoneId);
+    }
 
     function voteOnMilestone(
         uint256 projectId,
@@ -204,7 +219,8 @@ contract ProjectEscrow {
         (
             uint256 amountWei,
             bool exists,
-            bool fundsReleased
+            bool fundsReleased,
+            // bool isActivated // ignored
         ) = IMilestones(milestonesContract).getMilestone(projectId, milestoneId);
 
         require(exists, "No milestone");

@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { useGetProjectsQuery } from '@/lib/api'
 import ProjectCard from '@/components/ProjectCard'
 import CoinModel from '@/components/CoinModel'
+import { BentoGrid, BentoGridItem } from '@/components/ui/BentoGrid'
+import Carousel from '@/components/ui/Carousel'
+import Accordion from '@/components/ui/Accordion'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -101,7 +104,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features Section with BentoGrid */}
       <section className="py-20 bg-surface">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16" data-aos="fade-up">
@@ -113,31 +116,61 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', title: 'Secure Escrow', desc: 'Funds are held in escrow until milestones are approved by the community. Your investment is protected.' },
-              { icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', title: 'Community Governance', desc: 'Backers vote on milestone completion. Transparent decision-making ensures project quality.' },
-              { icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', title: 'Milestone-Based', desc: 'Projects are broken into milestones. Funds are released only when milestones are approved.' },
-              { icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', title: 'Refund Protection', desc: 'If milestones fail, you can request refunds. Your money is safe if projects don\'t deliver.' },
-              { icon: 'M13 10V3L4 14h7v7l9-11h-7z', title: 'Fast & Transparent', desc: 'Real-time updates, transparent progress tracking, and instant notifications keep you informed.' },
-              { icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', title: 'For Everyone', desc: 'Whether you\'re a creator launching a project or a backer supporting innovation, we\'ve got you covered.' },
-            ].map((feature, idx) => (
-              <div key={idx} className="card text-center" data-aos="fade-up" data-aos-delay={idx * 100}>
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-primary/10">
-                  <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={feature.icon} />
+          <BentoGrid>
+            <BentoGridItem
+              title="Secure Escrow"
+              description="Funds are held in escrow until milestones are approved by the community. Your investment is protected."
+              header={
+                <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl items-center justify-center" style={{ backgroundColor: 'var(--color-deep-red)' }}>
+                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-light-cream)' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2 text-text">{feature.title}</h3>
-                <p className="text-text opacity-70">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
+              }
+              className="md:col-span-2"
+            />
+            <BentoGridItem
+              title="Community Governance"
+              description="Backers vote on milestone completion. Transparent decision-making ensures project quality."
+              header={
+                <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl items-center justify-center" style={{ backgroundColor: 'var(--color-warm-beige)' }}>
+                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-matte-black)' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              }
+              className="md:col-span-1"
+            />
+            <BentoGridItem
+              title="Milestone-Based"
+              description="Projects are broken into milestones. Funds are released only when milestones are approved."
+              header={
+                <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl items-center justify-center" style={{ backgroundColor: '#4CAF50' }}>
+                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'white' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              }
+              className="md:col-span-1"
+            />
+            <BentoGridItem
+              title="Refund Protection"
+              description="If milestones fail, you can request refunds. Your money is safe if projects don't deliver."
+              header={
+                <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl items-center justify-center" style={{ backgroundColor: 'var(--color-deep-red)' }}>
+                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-light-cream)' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              }
+              className="md:col-span-2"
+            />
+          </BentoGrid>
         </div>
       </section>
 
       {/* Featured Projects Section */}
-      <section className="py-20 bg-surface">
+      <section className="py-20 bg-bg">
         <div className="container mx-auto px-4">
           <div className="mb-8 flex justify-between items-center" data-aos="fade-up">
             <div>
@@ -169,6 +202,59 @@ export default function Home() {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* FAQ Section with Accordion */}
+      <section className="py-20 bg-surface">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12" data-aos="fade-up">
+            <h2 className="text-4xl font-bold mb-4 text-text">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-lg text-text opacity-80">
+              Everything you need to know about milestone-based crowdfunding
+            </p>
+          </div>
+          <div className="max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+            <Accordion
+              items={[
+                {
+                  title: 'How does milestone-based funding work?',
+                  content: (
+                    <p className="text-text opacity-80">
+                      Projects are divided into milestones. Funds are held in escrow and released only when backers vote to approve each milestone's completion. This ensures accountability and protects your investment.
+                    </p>
+                  ),
+                },
+                {
+                  title: 'What happens if a milestone is not approved?',
+                  content: (
+                    <p className="text-text opacity-80">
+                      If backers vote against a milestone, the creator must revise and resubmit their work. If the project fails to meet its obligations, backers can request refunds for the remaining funds held in escrow.
+                    </p>
+                  ),
+                },
+                {
+                  title: 'How do I vote on milestones?',
+                  content: (
+                    <p className="text-text opacity-80">
+                      As a backer, you'll receive notifications when milestones are submitted for review. You can then review the deliverables and cast your vote (approve or reject) through your dashboard.
+                    </p>
+                  ),
+                },
+                {
+                  title: 'Are my funds safe?',
+                  content: (
+                    <p className="text-text opacity-80">
+                      Yes! All funds are held in secure escrow smart contracts. Creators can only access funds after milestone approval, and you can request refunds if milestones fail or the project doesn't deliver.
+                    </p>
+                  ),
+                },
+              ]}
+              allowMultiple={false}
+            />
+          </div>
         </div>
       </section>
 

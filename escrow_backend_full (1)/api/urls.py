@@ -2,10 +2,10 @@ from django.urls import path
 from .views import (
     ProjectListView, ProjectDetailView,
     ProjectMilestonesView, ProjectPledgesView,
-    ProjectCreateView, MilestoneCreateView, PledgeCreateView,
+    ProjectCreateView, MilestoneCreateView, MilestoneActivationView, PledgeCreateView,
     HistoryView, TransactionDetailView,
     AdminResolveView, AdminLogsView, AdminMetricsView,
-    ProjectStatusUpdateView,
+    ProjectStatusUpdateView, OpenVotingView, VoteOnMilestoneView,
 )
 
 urlpatterns = [
@@ -14,8 +14,11 @@ urlpatterns = [
     path("projects/<str:project_id>/", ProjectDetailView.as_view(), name="projects-detail"),
     path("projects/<str:project_id>/milestones/", ProjectMilestonesView.as_view(), name="projects-milestones"),
     path("projects/<str:project_id>/milestones/create/", MilestoneCreateView.as_view(), name="milestones-create"),
+    path("projects/<str:project_id>/milestones/<int:milestone_id>/activate/", MilestoneActivationView.as_view(), name="milestones-activate"),
     path("projects/<str:project_id>/pledges/", ProjectPledgesView.as_view(), name="projects-pledges"),
     path("projects/<str:project_id>/pledge/", PledgeCreateView.as_view(), name="pledge-create"),
+    path("projects/milestones/<int:milestone_id>/open-voting/", OpenVotingView.as_view(), name="milestone-open-voting"),
+    path("projects/milestones/<int:milestone_id>/vote/", VoteOnMilestoneView.as_view(), name="milestone-vote"),
     path("history/", HistoryView.as_view(), name="history"),
     path("tx/<str:tx_hash>/", TransactionDetailView.as_view(), name="tx-detail"),
     path("admin/resolve/", AdminResolveView.as_view(), name="admin-resolve"),

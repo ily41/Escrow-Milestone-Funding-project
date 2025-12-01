@@ -8,8 +8,10 @@ import {
   useVoteOnMilestoneMutation,
   useReleaseFundsMutation,
   useDeleteMilestoneMutation,
+  useActivateMilestoneMutation,
 } from '@/lib/api'
 import { useConfirm } from '@/hooks/useConfirm'
+import { toast } from '@/components/ui/Toast'
 
 interface MilestoneCardProps {
   milestone: Milestone
@@ -20,66 +22,72 @@ interface MilestoneCardProps {
 // SVG Icon Components
 const PendingIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-    <path d="M8 4V8L10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M8 4V8L10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 )
 
 const VotingIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-    <path d="M5 8H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M5 10H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M6 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M10 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M5 8H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M5 10H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M6 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M10 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 )
 
 const CheckIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M13 4L6 11L3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M13 4L6 11L3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
 
 const XIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 )
 
 const OpenVotingIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-    <path d="M5 8H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M5 10H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M6 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M10 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M5 8H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M5 10H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M6 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M10 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 )
 
 const ReleaseIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M8 2V8M8 8L5 5M8 8L11 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M3 10H13C13.5523 10 14 10.4477 14 11V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V11C2 10.4477 2.44772 10 3 10Z" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M8 2V8M8 8L5 5M8 8L11 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M3 10H13C13.5523 10 14 10.4477 14 11V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V11C2 10.4477 2.44772 10 3 10Z" stroke="currentColor" strokeWidth="1.5" />
   </svg>
 )
 
 const DeleteIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M6 2H10M2 4H14M12 4V13C12 13.5523 11.5523 14 11 14H5C4.44772 14 4 13.5523 4 13V4H12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M6 7V11M10 7V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M6 2H10M2 4H14M12 4V13C12 13.5523 11.5523 14 11 14H5C4.44772 14 4 13.5523 4 13V4H12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6 7V11M10 7V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 )
 
 const ApproveIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M13 4L6 11L3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M13 4L6 11L3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
 
 const RejectIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+)
+
+const ActivateIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 3V13M8 3L5 6M8 3L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
 
@@ -91,20 +99,37 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
   const [vote, { isLoading: isVoting }] = useVoteOnMilestoneMutation()
   const [releaseFunds, { isLoading: isReleasing }] = useReleaseFundsMutation()
   const [deleteMilestone, { isLoading: isDeleting }] = useDeleteMilestoneMutation()
+  const [activateMilestone, { isLoading: isActivating }] = useActivateMilestoneMutation()
+
+  const handleActivate = async () => {
+    try {
+      const milestoneId = (milestone as any).id || milestone.milestone_id
+      if (!milestoneId) {
+        toast.error('Milestone ID not found')
+        return
+      }
+      await activateMilestone({ projectId: String(projectId), milestoneId }).unwrap()
+      onUpdate()
+      toast.success('Milestone activated!')
+    } catch (error: any) {
+      const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to activate milestone'
+      toast.error(errorMessage)
+    }
+  }
 
   const handleOpenVoting = async () => {
     try {
       const milestoneId = (milestone as any).id || milestone.milestone_id
       if (!milestoneId) {
-        alert('Milestone ID not found')
+        toast.error('Milestone ID not found')
         return
       }
       await openVoting({ milestoneId }).unwrap()
       onUpdate()
-      alert('Voting opened!')
+      toast.success('Voting opened!')
     } catch (error: any) {
       const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to open voting'
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
@@ -112,16 +137,16 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
     try {
       const milestoneId = (milestone as any).id || milestone.milestone_id
       if (!milestoneId) {
-        alert('Milestone ID not found')
+        toast.error('Milestone ID not found')
         return
       }
       await vote({ milestone_id: milestoneId, decision }).unwrap()
       setHasVoted(true)
       onUpdate()
-      alert(`Vote submitted: ${decision}`)
+      toast.success(`Vote submitted: ${decision}`)
     } catch (error: any) {
       const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to submit vote'
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
@@ -138,15 +163,15 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
     try {
       const milestoneId = (milestone as any).id || milestone.milestone_id
       if (!milestoneId) {
-        alert('Milestone ID not found')
+        toast.error('Milestone ID not found')
         return
       }
       await releaseFunds({ milestoneId }).unwrap()
       onUpdate()
-      alert('Funds released successfully!')
+      toast.success('Funds released successfully!')
     } catch (error: any) {
       const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to release funds'
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
@@ -163,18 +188,18 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
     try {
       const milestoneId = (milestone as any).id || milestone.milestone_id
       if (!milestoneId) {
-        alert('Milestone ID not found')
+        toast.error('Milestone ID not found')
         return
       }
-      await deleteMilestone({ 
-        projectId: String(projectId), 
+      await deleteMilestone({
+        projectId: String(projectId),
         milestoneId: milestoneId
       }).unwrap()
       onUpdate()
-      alert('Milestone deleted successfully!')
+      toast.success('Milestone deleted successfully!')
     } catch (error: any) {
       const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to delete milestone'
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
@@ -217,10 +242,10 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
 
   const statusConfig = getStatusConfig(milestone.status)
   const StatusIcon = statusConfig.Icon
-  const loading = isOpeningVoting || isVoting || isReleasing || isDeleting
-  const percentage = milestone.percentage || 0
+  const loading = isOpeningVoting || isVoting || isReleasing || isDeleting || isActivating
   const milestoneStatus = String(milestone.status || '').toLowerCase()
   const canDelete = milestoneStatus !== 'pending' && milestoneStatus !== 'voting'
+  const isActivated = milestone.is_activated
 
   return (
     <>
@@ -229,7 +254,7 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
         {/* Status Badge - Top Right */}
         <div
           className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-          style={{ 
+          style={{
             backgroundColor: statusConfig.bg,
             color: statusConfig.text
           }}
@@ -255,35 +280,36 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                Funding Allocation
+                Funding Progress
               </span>
               <span className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
-                {percentage}%
+                {Math.min(milestone.progress || 0, 100).toFixed(1)}%
               </span>
             </div>
             <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-warm-beige)', opacity: 0.3 }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
-                  width: `${percentage}%`,
+                  width: `${Math.min(milestone.progress || 0, 100)}%`,
                   backgroundColor: 'var(--color-primary)'
                 }}
               />
+            </div>
+            <div className="text-xs mt-1 text-right" style={{ color: 'var(--color-text)', opacity: 0.6 }}>
+              Funded: {milestone.funded_amount} / {milestone.required_amount}
             </div>
           </div>
 
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-3 mb-4">
-            {milestone.funding_amount && (
-              <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-light-cream)', border: '1px solid var(--color-warm-beige)' }}>
-                <div className="text-xs font-medium mb-1" style={{ color: 'var(--color-text)' }}>
-                  Target Amount
-                </div>
-                <div className="text-base font-bold" style={{ color: 'var(--color-text)' }}>
-                  {milestone.target_amount || milestone.funding_amount}
-                </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-light-cream)', border: '1px solid var(--color-warm-beige)' }}>
+              <div className="text-xs font-medium mb-1" style={{ color: 'var(--color-text)' }}>
+                Required Amount
               </div>
-            )}
+              <div className="text-base font-bold" style={{ color: 'var(--color-text)' }}>
+                {milestone.required_amount}
+              </div>
+            </div>
             {milestone.due_date && (() => {
               const date = new Date(milestone.due_date)
               if (isNaN(date.getTime())) return null
@@ -347,11 +373,24 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
 
           {/* Action Buttons */}
           <div className="flex gap-2">
+            {!isActivated && milestoneStatus === 'pending' && (
+              <button
+                onClick={handleActivate}
+                className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#3b82f6', color: 'white' }}
+                disabled={loading}
+              >
+                <ActivateIcon />
+                <span>Activate</span>
+              </button>
+            )}
+
             {milestoneStatus === 'pending' && (
               <button
                 onClick={handleOpenVoting}
                 className="btn-primary flex-1 text-sm flex items-center justify-center gap-2"
-                disabled={loading}
+                disabled={loading || ((milestone.progress || 0) < 70)}
+                title={(milestone.progress || 0) < 70 ? "Funding must be > 70%" : ""}
               >
                 <OpenVotingIcon />
                 <span>Open Voting</span>

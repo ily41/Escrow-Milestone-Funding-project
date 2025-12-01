@@ -10,6 +10,7 @@ import {
   useDeactivateProjectMutation,
 } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
+import { toast } from '@/components/ui/Toast'
 import CustomSelect from '@/components/CustomSelect'
 import { useConfirm } from '@/hooks/useConfirm'
 import AuthGuard from '@/components/AuthGuard'
@@ -41,9 +42,15 @@ export default function CreatorDashboard() {
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // Convert end_date to Unix timestamp
+      const deadlineTimestamp = Math.floor(new Date(formData.end_date).getTime() / 1000)
+
       await createProject({
-        ...formData,
-        goal_amount: parseFloat(formData.goal_amount),
+        title: formData.title,
+        description: formData.description,
+        funding_goal_eth: parseFloat(formData.goal_amount),
+        deadline_timestamp: deadlineTimestamp,
+        status: 'active',
       }).unwrap()
 
       setShowCreateForm(false)
@@ -56,10 +63,10 @@ export default function CreatorDashboard() {
         end_date: '',
       })
       refetch()
-      alert('Project created successfully!')
+      toast.success('Project created successfully!')
     } catch (error: any) {
-      const errorMessage = error?.data?.error || error?.data?.message || error?.error || 'Failed to create project'
-      alert(errorMessage)
+      const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to create project'
+      toast.error(errorMessage)
     }
   }
 
@@ -76,10 +83,10 @@ export default function CreatorDashboard() {
     try {
       await activateProject(projectId).unwrap()
       refetch()
-      alert('Project activated!')
+      toast.success('Project activated!')
     } catch (error: any) {
       const errorMessage = error?.data?.error || error?.data?.message || error?.error || 'Failed to activate project'
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
@@ -96,10 +103,10 @@ export default function CreatorDashboard() {
     try {
       await deactivateProject(projectId).unwrap()
       refetch()
-      alert('Project deactivated!')
+      toast.success('Project deactivated!')
     } catch (error: any) {
       const errorMessage = error?.data?.error || error?.data?.message || error?.error || 'Failed to deactivate project'
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
@@ -143,6 +150,7 @@ export default function CreatorDashboard() {
                 <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>Title</label>
                 <input
                   type="text"
+                  id="project-title"
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -152,6 +160,7 @@ export default function CreatorDashboard() {
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>Description</label>
                 <textarea
+                  id="project-description"
                   required
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -164,6 +173,7 @@ export default function CreatorDashboard() {
                   <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>Goal Amount</label>
                   <input
                     type="number"
+                    id="project-goal"
                     step="0.01"
                     required
                     value={formData.goal_amount}
@@ -177,6 +187,7 @@ export default function CreatorDashboard() {
                     value={formData.currency}
                     onChange={(value) => setFormData({ ...formData, currency: value })}
                     options={[
+                      { value: 'ETH', label: 'ETH' },
                       { value: 'USD', label: 'USD' },
                       { value: 'EUR', label: 'EUR' },
                       { value: 'GBP', label: 'GBP' },
@@ -190,6 +201,7 @@ export default function CreatorDashboard() {
                   <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>Start Date</label>
                   <input
                     type="datetime-local"
+                    id="project-start-date"
                     required
                     value={formData.start_date}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
@@ -200,6 +212,7 @@ export default function CreatorDashboard() {
                   <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>End Date</label>
                   <input
                     type="datetime-local"
+                    id="project-end-date"
                     required
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}

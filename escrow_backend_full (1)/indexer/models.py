@@ -4,7 +4,9 @@ class Project(models.Model):
     project_id = models.CharField(max_length=128, primary_key=True)
     title = models.CharField(max_length=255)
     escrow_address = models.CharField(max_length=255)
+    creator_address = models.CharField(max_length=255, null=True, blank=True)
     funding_goal = models.DecimalField(max_digits=38, decimal_places=18)
+    total_pledged = models.DecimalField(max_digits=38, decimal_places=18, default=0)
     deadline = models.DateTimeField()
     status = models.CharField(max_length=64)
 
@@ -14,11 +16,17 @@ class Project(models.Model):
 
 class Milestone(models.Model):
     id = models.AutoField(primary_key=True)
-    project = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    percentage = models.IntegerField()
-    status = models.CharField(max_length=64)
+    description = models.TextField()
+    required_amount = models.DecimalField(max_digits=38, decimal_places=18, default=0)
+    funded_amount = models.DecimalField(max_digits=38, decimal_places=18, default=0)
+    due_date = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=64, default='pending')
+    is_activated = models.BooleanField(default=False)
+    
+    # On-chain data
+    on_chain_id = models.IntegerField(null=True, blank=True)
 
     class Meta:
         managed = True
@@ -68,3 +76,16 @@ class AuditLog(models.Model):
     class Meta:
         managed = True
         db_table = 'audit_logs'
+
+class Vote(models.Model):
+    id = models.AutoField(primary_key=True)
+    milestone = models.ForeignKey(Milestone, on_delete=models.DO_NOTHING, related_name='votes')
+    backer_address = models.CharField(max_length=255)
+    decision = models.CharField(max_length=10)  # 'approve' or 'reject'
+    weight = models.DecimalField(max_digits=38, decimal_places=18, default=1)
+    voted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        db_table = 'votes'
+        unique_together = ('milestone', 'backer_address')

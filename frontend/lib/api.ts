@@ -57,7 +57,7 @@ export const api = createApi({
     }),
     createProject: builder.mutation({
       query: (projectData) => ({
-        url: '/api/projects/',
+        url: '/api/projects/create/',
         method: 'POST',
         body: projectData,
       }),
@@ -109,6 +109,13 @@ export const api = createApi({
       query: ({ projectId, milestoneId }) => ({
         url: `/api/projects/${projectId}/milestones/${milestoneId}/delete/`,
         method: 'DELETE',
+      }),
+      invalidatesTags: ['Milestone', 'Project'],
+    }),
+    activateMilestone: builder.mutation({
+      query: ({ projectId, milestoneId }) => ({
+        url: `/api/projects/${projectId}/milestones/${milestoneId}/activate/`,
+        method: 'POST',
       }),
       invalidatesTags: ['Milestone', 'Project'],
     }),
@@ -177,20 +184,13 @@ export const api = createApi({
       invalidatesTags: ['Milestone', 'Project'],
     }),
 
-    // Updates endpoints (Note: These endpoints may not exist in backend yet)
+    // Updates endpoints (Temporarily disabled - not implemented in backend)
     getUpdates: builder.query({
-      query: (params) => ({
-        url: '/projects/updates/',
-        params: params ? { project_id: params.project_id || params.project } : undefined,
-      }),
+      queryFn: () => ({ data: [] }), // Return empty array instead of making API call
       providesTags: ['Update'],
     }),
     createUpdate: builder.mutation({
-      query: ({ projectId, ...updateData }) => ({
-        url: '/projects/updates/',
-        method: 'POST',
-        body: { project_id: projectId, ...updateData },
-      }),
+      queryFn: () => ({ data: { success: true } }), // Stub implementation
       invalidatesTags: ['Update', 'Project'],
     }),
   }),
@@ -209,6 +209,7 @@ export const {
   useCreateMilestoneMutation,
   useUpdateMilestoneMutation,
   useDeleteMilestoneMutation,
+  useActivateMilestoneMutation,
   useApproveMilestoneMutation,
   useGetPledgesQuery,
   useCreatePledgeMutation,

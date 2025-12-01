@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/Navbar'
 import { ThemeProvider } from '@/contexts/ThemeContext'
+import { ToastContainer } from '@/components/ui/Toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -96,6 +97,7 @@ export default function RootLayout({
             <main className="min-h-screen bg-bg">
               {children}
             </main>
+            <ToastContainer />
           </ThemeProvider>
         </ReduxProvider>
       </body>

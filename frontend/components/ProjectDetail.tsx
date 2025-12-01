@@ -8,11 +8,14 @@ import {
   useGetMilestonesQuery,
   useGetUpdatesQuery,
   useCreateUpdateMutation,
+  useCreateMilestoneMutation,
 } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
+import { toast } from '@/components/ui/Toast'
 import MilestoneCard from './MilestoneCard'
 import PledgeForm from './PledgeForm'
 import UpdateCard from './UpdateCard'
+import MilestoneCreateForm from './MilestoneCreateForm'
 
 interface ProjectDetailProps {
   project: Project
@@ -22,22 +25,26 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
   const { user } = useAuth()
   const [showPledgeForm, setShowPledgeForm] = useState(false)
   const [showUpdateForm, setShowUpdateForm] = useState(false)
+  const [showMilestoneForm, setShowMilestoneForm] = useState(false)
 
   const { data: milestones = [], refetch: refetchMilestones } = useGetMilestonesQuery({ project_id: project.project_id })
   const { data: updates = [], refetch: refetchUpdates } = useGetUpdatesQuery({ project_id: project.project_id })
 
   const [createPledge, { isLoading: isPledging }] = useCreatePledgeMutation()
   const [createUpdate, { isLoading: isCreatingUpdate }] = useCreateUpdateMutation()
+  const [createMilestone, { isLoading: isCreatingMilestone }] = useCreateMilestoneMutation()
 
-  const isCreator = user?.id === project?.creator_id
+  // Check if current user is the creator
+  // Since we're using wallet addresses now, we need to check against creator_address
+  const isCreator = user?.is_creator === true
 
   const handlePledge = async (amount: number) => {
     try {
       await createPledge({ projectId: project.project_id, amount }).unwrap()
       setShowPledgeForm(false)
-      alert('Pledge created successfully!')
+      toast.success('Pledge created successfully!')
     } catch (error: any) {
-      alert(error.data?.error || 'Failed to create pledge')
+      toast.error(error.data?.error || 'Failed to create pledge')
     }
   }
 
@@ -46,15 +53,36 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
       await createUpdate({ projectId: project.project_id, title, content }).unwrap()
       setShowUpdateForm(false)
       refetchUpdates()
-      alert('Update created successfully!')
+      toast.success('Update created successfully!')
     } catch (error: any) {
-      alert(error.data?.error || 'Failed to create update')
+      toast.error(error.data?.error || 'Failed to create update')
+    }
+  }
+
+  const handleCreateMilestone = async (title: string, description: string, amount: number) => {
+    try {
+      await createMilestone({
+        projectId: project.project_id,
+        title,
+        description,
+        required_amount: amount,
+      }).unwrap()
+      setShowMilestoneForm(false)
+      refetchMilestones()
+      toast.success('Milestone created successfully!')
+    } catch (error: any) {
+      const errorMessage = error?.data?.detail || error?.data?.error || 'Failed to create milestone'
+      toast.error(errorMessage)
     }
   }
 
   const progress = project.progress_percentage || 0
   const totalPledged = parseFloat(project.total_pledged || '0')
-  const goalAmount = parseFloat(project.goal_amount)
+  const goalAmount = parseFloat(project.goal_amount || '0')
+
+  // Calculate remaining amount for milestones
+  const totalMilestoneAmount = milestones.reduce((sum: number, m: any) => sum + parseFloat(m.required_amount || '0'), 0)
+  const remainingAmount = goalAmount - totalMilestoneAmount
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -64,11 +92,11 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
 
         <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--text)', opacity: 0.7 }}>
           <span>Status: <span className="font-semibold capitalize">{project.status}</span></span>
-          {(project.deadline || project.end_date) && (
+          {(project.deadline) && (
             <>
               <span>•</span>
               <span>Ends: {(() => {
-                const dateStr = project.deadline || project.end_date
+                const dateStr = project.deadline
                 if (!dateStr) return 'N/A'
                 const date = new Date(dateStr)
                 if (isNaN(date.getTime())) return 'N/A'
@@ -98,14 +126,16 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
               </div>
               <div className="flex justify-between text-sm mt-2" style={{ color: 'var(--text)', opacity: 0.7 }}>
                 <span>Goal: {project.currency} {goalAmount.toLocaleString()}</span>
-                <span>{progress.toFixed(1)}%</span>
+                <span>{Math.min(progress, 100).toFixed(1)}%</span>
               </div>
             </div>
 
             {project.status === 'active' && (
               <button
                 onClick={() => setShowPledgeForm(!showPledgeForm)}
-                className="btn-primary w-full"
+                className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!milestones.some((m: any) => m.is_activated)}
+                title={!milestones.some((m: any) => m.is_activated) ? "No active milestones" : ""}
               >
                 {showPledgeForm ? 'Cancel' : 'Make a Pledge'}
               </button>
@@ -115,20 +145,24 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
               <div className="mt-4">
                 <PledgeForm
                   onSubmit={handlePledge}
-                  currency={project.currency}
+                  currency={project.currency || 'ETH'}
                   loading={isPledging}
                 />
               </div>
             )}
           </div>
 
-          <div className="card mb-6">
-            <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--text)' }}>Milestones</h2>
-            {milestones.length === 0 ? (
-              <p style={{ color: 'var(--text)', opacity: 0.7 }}>No milestones defined yet.</p>
-            ) : (
+          {/* Activated Milestones Container */}
+          {milestones.some((m: any) => m.is_activated) && (
+            <div className="card mb-6 border-2 border-blue-500/20 bg-blue-50/5">
+              <h2 className="text-2xl font-semibold mb-4 text-blue-600 flex items-center gap-2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 10V3L4 14H11V21L20 10H13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Activated Milestones
+              </h2>
               <div className="space-y-4">
-                {milestones.map((milestone: any) => (
+                {milestones.filter((m: any) => m.is_activated).map((milestone: any) => (
                   <MilestoneCard
                     key={milestone.milestone_id}
                     milestone={milestone}
@@ -136,6 +170,50 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
                     onUpdate={refetchMilestones}
                   />
                 ))}
+              </div>
+            </div>
+          )}
+
+          <div className="card mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>Milestones</h2>
+              {isCreator && (
+                <button
+                  onClick={() => setShowMilestoneForm(!showMilestoneForm)}
+                  className="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={remainingAmount <= 0 && !showMilestoneForm}
+                  title={remainingAmount <= 0 ? "Project fully allocated" : ""}
+                >
+                  {showMilestoneForm ? 'Cancel' : 'Add Milestone'}
+                </button>
+              )}
+            </div>
+
+            {showMilestoneForm && isCreator && (
+              <MilestoneCreateForm
+                onSubmit={handleCreateMilestone}
+                loading={isCreatingMilestone}
+                remainingAmount={remainingAmount}
+                currency={project.currency || 'ETH'}
+              />
+            )}
+
+            {milestones.length === 0 ? (
+              <p style={{ color: 'var(--text)', opacity: 0.7 }}>No milestones defined yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {milestones.filter((m: any) => !m.is_activated).length === 0 && milestones.length > 0 ? (
+                  <p style={{ color: 'var(--text)', opacity: 0.7 }}>All milestones are activated.</p>
+                ) : (
+                  milestones.filter((m: any) => !m.is_activated).map((milestone: any) => (
+                    <MilestoneCard
+                      key={milestone.milestone_id}
+                      milestone={milestone}
+                      projectId={project.project_id}
+                      onUpdate={refetchMilestones}
+                    />
+                  ))
+                )}
               </div>
             )}
           </div>

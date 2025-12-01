@@ -19,6 +19,16 @@
   --color-secondary: var(--color-warm-beige);
   --color-border: var(--color-warm-beige);
   --color-success: var(--color-success-light);
+
+  /* Backward Compatibility */
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --text: var(--color-text);
+  --primary: var(--color-primary);
+  --primary-text: var(--color-primary-text);
+  --secondary: var(--color-secondary);
+  --border: var(--color-border);
+  --success: var(--color-success);
 }
 
 /* Manual Dark Mode Class */
@@ -31,6 +41,8 @@
   --color-secondary: var(--color-warm-beige);
   --color-border: var(--color-warm-beige);
   --color-success: var(--color-success-dark);
+
+  --gradient-primary: var(--gradient-dark);
 }
 
 body {

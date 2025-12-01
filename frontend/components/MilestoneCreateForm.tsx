@@ -3,23 +3,24 @@
 import { useState } from 'react'
 
 interface MilestoneCreateFormProps {
-    onSubmit: (title: string, description: string, percentage: number) => void
+    onSubmit: (title: string, description: string, amount: number) => void
     loading: boolean
-    remainingPercentage: number
+    remainingAmount: number
+    currency: string
 }
 
-export default function MilestoneCreateForm({ onSubmit, loading, remainingPercentage }: MilestoneCreateFormProps) {
+export default function MilestoneCreateForm({ onSubmit, loading, remainingAmount, currency }: MilestoneCreateFormProps) {
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
-    const [percentage, setPercentage] = useState<number | ''>('')
+    const [amount, setAmount] = useState<number | ''>('')
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        if (title && percentage) {
-            onSubmit(title, description, Number(percentage))
+        if (title && amount) {
+            onSubmit(title, description, Number(amount))
             setTitle('')
             setDescription('')
-            setPercentage('')
+            setAmount('')
         }
     }
 
@@ -52,16 +53,17 @@ export default function MilestoneCreateForm({ onSubmit, loading, remainingPercen
 
             <div className="mb-4">
                 <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)', opacity: 0.8 }}>
-                    Percentage (Remaining: {remainingPercentage}%)
+                    Amount (Remaining: {currency} {remainingAmount})
                 </label>
                 <input
                     type="number"
-                    placeholder="1-100"
-                    value={percentage}
-                    onChange={(e) => setPercentage(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder={`Amount in ${currency}`}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     className="input-field w-full"
-                    min="1"
-                    max={remainingPercentage}
+                    min="0.000000000000000001"
+                    max={remainingAmount}
+                    step="any"
                     required
                 />
             </div>
@@ -69,7 +71,7 @@ export default function MilestoneCreateForm({ onSubmit, loading, remainingPercen
             <button
                 type="submit"
                 className="btn-primary w-full"
-                disabled={loading || (typeof percentage === 'number' && percentage > remainingPercentage)}
+                disabled={loading || (typeof amount === 'number' && amount > remainingAmount)}
             >
                 {loading ? 'Creating...' : 'Create Milestone'}
             </button>
