@@ -20,6 +20,12 @@
   --color-border: var(--color-warm-beige);
   --color-success: var(--color-success-light);
 
+  /* GooeyNav Particle Colors */
+  --gooey-color-1: var(--color-deep-red);
+  --gooey-color-2: var(--color-soft-gold);
+  --gooey-color-3: var(--color-warm-beige);
+  --gooey-color-4: var(--color-primary);
+
   /* Backward Compatibility */
   --bg: var(--color-bg);
   --surface: var(--color-surface);

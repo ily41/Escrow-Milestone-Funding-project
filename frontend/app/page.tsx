@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useGetProjectsQuery } from '@/lib/api'
 import ProjectCard from '@/components/ProjectCard'
 import CoinModel from '@/components/CoinModel'
-import { BentoGrid, BentoGridItem } from '@/components/ui/BentoGrid'
+import MagicBento from '@/components/MagicBento'
 import Carousel from '@/components/ui/Carousel'
 import Accordion from '@/components/ui/Accordion'
 import gsap from 'gsap'
@@ -104,7 +104,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section with BentoGrid */}
+      {/* Features Section with MagicBento */}
       <section className="py-20 bg-surface">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16" data-aos="fade-up">
@@ -116,56 +116,86 @@ export default function Home() {
             </p>
           </div>
 
-          <BentoGrid>
-            <BentoGridItem
-              title="Secure Escrow"
-              description="Funds are held in escrow until milestones are approved by the community. Your investment is protected."
-              header={
-                <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl items-center justify-center" style={{ backgroundColor: 'var(--color-deep-red)' }}>
-                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-light-cream)' }}>
+          <MagicBento
+            textAutoHide={true}
+            enableStars={true}
+            enableSpotlight={true}
+            enableBorderGlow={true}
+            enableTilt={true}
+            enableMagnetism={true}
+            clickEffect={true}
+            spotlightRadius={300}
+            particleCount={12}
+            glowColor="139, 0, 0"
+            cards={[
+              {
+                color: 'var(--color-soft-gold)',
+                title: 'Secure Escrow',
+                description: 'Funds are held in escrow until milestones are approved by the community. Your investment is protected.',
+                label: 'Protection',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-deep-red)' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
-                </div>
-              }
-              className="md:col-span-2"
-            />
-            <BentoGridItem
-              title="Community Governance"
-              description="Backers vote on milestone completion. Transparent decision-making ensures project quality."
-              header={
-                <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl items-center justify-center" style={{ backgroundColor: 'var(--color-warm-beige)' }}>
-                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-matte-black)' }}>
+                )
+              },
+              {
+                color: 'var(--color-warm-beige)',
+                title: 'Community Governance',
+                description: 'Backers vote on milestone completion. Transparent decision-making ensures project quality.',
+                label: 'Governance',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-deep-red)' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                </div>
-              }
-              className="md:col-span-1"
-            />
-            <BentoGridItem
-              title="Milestone-Based"
-              description="Projects are broken into milestones. Funds are released only when milestones are approved."
-              header={
-                <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl items-center justify-center" style={{ backgroundColor: '#4CAF50' }}>
-                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'white' }}>
+                )
+              },
+              {
+                color: 'var(--color-soft-gold)',
+                title: 'Milestone-Based',
+                description: 'Projects are broken into milestones. Funds are released only when milestones are approved.',
+                label: 'Milestones',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-deep-red)' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                </div>
-              }
-              className="md:col-span-1"
-            />
-            <BentoGridItem
-              title="Refund Protection"
-              description="If milestones fail, you can request refunds. Your money is safe if projects don't deliver."
-              header={
-                <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl items-center justify-center" style={{ backgroundColor: 'var(--color-deep-red)' }}>
-                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-light-cream)' }}>
+                )
+              },
+              {
+                color: 'var(--color-warm-beige)',
+                title: 'Refund Protection',
+                description: 'If milestones fail, you can request refunds. Your money is safe if projects don\'t deliver.',
+                label: 'Safety',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-deep-red)' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                </div>
+                )
+              },
+              {
+                color: 'var(--color-soft-gold)',
+                title: 'Transparent Tracking',
+                description: 'Track project progress in real-time. See exactly where your funds are going.',
+                label: 'Transparency',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-deep-red)' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                )
+              },
+              {
+                color: 'var(--color-warm-beige)',
+                title: 'Smart Contracts',
+                description: 'Blockchain-powered automation ensures fair and trustless execution.',
+                label: 'Technology',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-deep-red)' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                )
               }
-              className="md:col-span-2"
-            />
-          </BentoGrid>
+            ]}
+          />
         </div>
       </section>
 
@@ -195,7 +225,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projects.slice(0, 6).map((project: any, idx) => (
+              {projects.slice(0, 6).map((project: any, idx: number) => (
                 <div key={project.project_id} data-aos="fade-up" data-aos-delay={idx * 100}>
                   <ProjectCard project={project} />
                 </div>
