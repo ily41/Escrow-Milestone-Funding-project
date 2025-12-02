@@ -12,15 +12,14 @@ class MilestoneSerializer(serializers.ModelSerializer):
         read_only_fields = ('on_chain_id', 'transaction_hash', 'voting_session_id', 'status')
 
     def get_approve_votes_count(self, obj):
-        return obj.votes.filter(decision='approve').count()
+        return obj.votes.filter(approval=1).count()
 
     def get_reject_votes_count(self, obj):
-        return obj.votes.filter(decision='reject').count()
+        return obj.votes.filter(approval=0).count()
 
     def get_progress(self, obj):
         # Progress based on milestone funding
-        if obj.required_amount > 0:
-            return (obj.funded_amount / obj.required_amount) * 100
+        # funded_amount removed from model, returning 0 for now
         return 0
 
 class ProjectSerializer(serializers.ModelSerializer):
