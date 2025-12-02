@@ -9,26 +9,27 @@ class MilestoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Milestone
         fields = "__all__"
+        read_only_fields = ('on_chain_id', 'transaction_hash', 'voting_session_id', 'status')
 
     def get_approve_votes_count(self, obj):
-        return obj.votes.filter(decision='approve').count()
+        return obj.votes.filter(approval=1).count()
 
     def get_reject_votes_count(self, obj):
-        return obj.votes.filter(decision='reject').count()
+        return obj.votes.filter(approval=0).count()
 
     def get_progress(self, obj):
         # Progress based on milestone funding
-        if obj.required_amount > 0:
-            return (obj.funded_amount / obj.required_amount) * 100
+        # funded_amount removed from model, returning 0 for now
         return 0
 
 class ProjectSerializer(serializers.ModelSerializer):
-    milestones = MilestoneSerializer(many=True, read_only=True, source='milestone_set')
+    # milestones = MilestoneSerializer(many=True, read_only=True, source='milestone_set')
     progress_percentage = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = "__all__"
+        read_only_fields = ('on_chain_id', 'created_tx_hash', 'current_funding', 'status')
 
     def get_progress_percentage(self, obj):
         if obj.funding_goal > 0:
@@ -39,6 +40,7 @@ class PledgeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pledge
         fields = "__all__"
+        read_only_fields = ('transaction_hash', 'block_number', 'status')
 
 class ReleaseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -71,3 +73,6 @@ class MilestoneCreateSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255)
     description = serializers.CharField(allow_blank=True, required=False)
     required_amount = serializers.DecimalField(max_digits=18, decimal_places=8)
+
+class PledgeCreateSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=18, decimal_places=8, help_text="Amount to pledge in ETH")

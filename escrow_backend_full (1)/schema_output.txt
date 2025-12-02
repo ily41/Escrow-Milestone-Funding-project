@@ -1,0 +1,42 @@
+--- Milestones Table ---
+milestone_id: uuid
+project_id: uuid
+title: text
+description: text
+funding_amount: numeric
+due_date: timestamp with time zone
+submitted_at: timestamp with time zone
+status: integer
+voting_session_id: text
+transaction_hash: character varying
+on_chain_id: integer
+
+--- Pledges Table ---
+pledge_id: uuid
+project_id: uuid
+backer_id: uuid
+amount: numeric
+pledged_at: timestamp with time zone
+status: integer
+voting_power: numeric
+block_number: integer
+transaction_hash: character varying
+
+--- Backers Table ---
+backer_id: uuid
+wallet_address: text
+name: text
+email: text
+total_pledged: numeric
+registered_at: timestamp with time zone
+status: integer
+user_id: integer
+
+--- Votes Table ---
+vote_id: uuid
+milestone_id: uuid
+backer_id: uuid
+vote_weight: numeric
+approval: integer
+voted_at: timestamp with time zone
+
