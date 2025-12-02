@@ -129,7 +129,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('INDEXER_DB_NAME', 'escrow_indexer'),
         'USER': os.getenv('INDEXER_DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('INDEXER_DB_PASSWORD', 'postgres'),
+        'PASSWORD': os.getenv('INDEXER_DB_PASSWORD', 'root'),
         'HOST': os.getenv('INDEXER_DB_HOST', 'localhost'),
         'PORT': os.getenv('INDEXER_DB_PORT', '5432'),
     }

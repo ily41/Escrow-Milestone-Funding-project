@@ -1,0 +1,41 @@
+{
+  "project_success": {
+    "accuracy": 0.8,
+    "f1_score": 0.8333333333333334,
+    "roc_auc": 0.912,
+    "confusion_matrix": [
+      [
+        12,
+        3
+      ],
+      [
+        5,
+        20
+      ]
+    ],
+    "feature_importance": {
+      "reputation_score": 0.09429338785117193,
+      "funding_goal": 0.09562619747703109,
+      "days_to_deadline": 0.0860957002113483,
+      "pledge_count": 0.2642446566034664,
+      "avg_pledge": 0.12126059786077346,
+      "unique_backers": 0.3120457154830942,
+      "milestone_count": 0.026433744513114553
+    }
+  },
+  "milestone_risk": {
+    "accuracy": 0.9454545454545454,
+    "f1_score": 0.9361702127659575,
+    "roc_auc": 0.9821535244922343,
+    "confusion_matrix": [
+      [
+        90,
+        3
+      ],
+      [
+        6,
+        66
+      ]
+    ]
+  }
+}

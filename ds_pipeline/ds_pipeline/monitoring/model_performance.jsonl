@@ -1,0 +1,1 @@
+{"timestamp": "2025-12-03T02:45:06.562582", "model": "project_success", "prediction": 1, "probability": 0.85, "actual": 1, "features": {"reputation_score": 7.5, "funding_goal": 10000.0}}
