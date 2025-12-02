@@ -645,13 +645,14 @@ const MagicBento: React.FC<BentoProps> = ({
                             }`;
 
                         const cardStyle = {
-                            backgroundColor: card.color || 'var(--background-dark)',
-                            borderColor: 'var(--border-color)',
-                            color: 'var(--card-text)',
+                            background: 'linear-gradient(135deg, #2a2a2a 50%, #9fa45b 50%)',
+                            borderColor: '#9fa45b',
+                            color: '#f4f4f0',
                             '--glow-x': '50%',
                             '--glow-y': '50%',
                             '--glow-intensity': '0',
-                            '--glow-radius': '200px'
+                            '--glow-radius': '200px',
+                            '--glow-color': '#5fa6a6' // Cool Teal for hover
                         } as React.CSSProperties;
 
                         if (enableStars) {

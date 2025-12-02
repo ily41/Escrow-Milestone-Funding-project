@@ -1,30 +1,48 @@
 @import "tailwindcss";
 
 @theme {
-  /* Warm Japanese Matte Color Palette */
-  --color-soft-gold: #EDE1B1;
-  --color-warm-beige: #CDB79E;
-  --color-light-cream: #FAFAD2;
-  --color-matte-black: #2E2E2E;
-  --color-deep-red: #8B0000;
-  --color-success-light: #4CAF50;
-  --color-success-dark: #66BB6A;
+  /* Strict User Palette - No Other Colors Allowed */
+  --color-bg: #2a2a2a;
+  /* Dark Charcoal */
+  --color-surface: #2a2a2a;
+  /* Dark Charcoal (Strict) */
+  --color-text: #f4f4f0;
+  /* Light Warm Gray */
+  --color-primary: #ebf29c;
+  /* Light Lime-Yellow */
+  --color-primary-text: #2a2a2a;
+  /* Dark Charcoal on Primary */
+  --color-secondary: #5fa6a6;
+  /* Cool Teal */
+  --color-accent: #f28c6a;
+  /* Soft Coral */
+  --color-border: #9fa45b;
+  /* Muted Olive */
+  --color-success: #9fa45b;
+  /* Muted Olive */
+  --color-success-dark: #5fa6a6;
+  /* Cool Teal */
+
+  /* Legacy Compatibility (Mapped to New Palette) */
+  --color-soft-gold: var(--color-surface);
+  --color-warm-beige: var(--color-border);
+  --color-light-cream: var(--color-bg);
+  --color-matte-black: var(--color-text);
+  --color-deep-red: var(--color-primary);
+  --color-success-light: var(--color-success);
 
   /* Semantic Colors */
-  --color-bg: var(--color-light-cream);
-  --color-surface: var(--color-soft-gold);
-  --color-text: var(--color-matte-black);
-  --color-primary: var(--color-deep-red);
-  --color-primary-text: var(--color-light-cream);
-  --color-secondary: var(--color-warm-beige);
-  --color-border: var(--color-warm-beige);
-  --color-success: var(--color-success-light);
+  /* Re-mapping not strictly needed if we use the vars directly, but keeping for compatibility */
 
-  /* GooeyNav Particle Colors */
-  --gooey-color-1: var(--color-deep-red);
-  --gooey-color-2: var(--color-soft-gold);
-  --gooey-color-3: var(--color-warm-beige);
-  --gooey-color-4: var(--color-primary);
+  /* GooeyNav Particle Colors - Strict Palette */
+  --gooey-color-1: #ebf29c;
+  /* Light Lime-Yellow */
+  --gooey-color-2: #5fa6a6;
+  /* Cool Teal */
+  --gooey-color-3: #f28c6a;
+  /* Soft Coral */
+  --gooey-color-4: #9fa45b;
+  /* Muted Olive */
 
   /* Backward Compatibility */
   --bg: var(--color-bg);
@@ -37,18 +55,18 @@
   --success: var(--color-success);
 }
 
-/* Manual Dark Mode Class */
+/* Manual Dark Mode Class - Strict Palette */
 .dark {
-  --color-bg: var(--color-matte-black);
-  --color-surface: #3B3B3B;
-  --color-text: var(--color-light-cream);
-  --color-primary: var(--color-soft-gold);
-  --color-primary-text: var(--color-matte-black);
-  --color-secondary: var(--color-warm-beige);
-  --color-border: var(--color-warm-beige);
-  --color-success: var(--color-success-dark);
+  --color-bg: #2a2a2a;
+  --color-surface: #2a2a2a;
+  --color-text: #f4f4f0;
+  --color-primary: #ebf29c;
+  --color-primary-text: #2a2a2a;
+  --color-secondary: #5fa6a6;
+  --color-border: #9fa45b;
+  --color-success: #9fa45b;
 
-  --gradient-primary: var(--gradient-dark);
+  --gradient-primary: linear-gradient(135deg, #ebf29c 0%, #5fa6a6 100%);
 }
 
 body {
@@ -62,7 +80,7 @@ body {
   }
 
   .btn-secondary {
-    @apply bg-secondary text-matte-black px-4 py-2 rounded-lg transition-all duration-150 font-medium border-none hover:opacity-90 dark:text-light-cream;
+    @apply bg-secondary text-white px-4 py-2 rounded-lg transition-all duration-150 font-medium border-none hover:opacity-90 dark:text-white;
   }
 
   .card {

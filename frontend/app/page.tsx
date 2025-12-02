@@ -7,7 +7,9 @@ import { useGetProjectsQuery } from '@/lib/api'
 import ProjectCard from '@/components/ProjectCard'
 import CoinModel from '@/components/CoinModel'
 import MagicBento from '@/components/MagicBento'
-import Carousel from '@/components/ui/Carousel'
+import InfiniteMenu, { MenuItem } from '@/components/InfiniteMenu'
+import RotatingText from '@/components/RotatingText'
+import GridMotion from '@/components/GridMotion'
 import Accordion from '@/components/ui/Accordion'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -21,26 +23,123 @@ export default function Home() {
   const router = useRouter()
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
   const coinRef = useRef<HTMLDivElement>(null)
+  const heroRef = useRef<HTMLDivElement>(null)
+  const infiniteMenuRef = useRef<HTMLDivElement>(null)
 
   // Fetch active projects
   const { data: projects = [] } = useGetProjectsQuery({ status: 'active' }, {
     skip: isLoggedIn === null, // Skip until auth check is done
   })
 
+  // Map projects to InfiniteMenu items
+  const menuItems: MenuItem[] = projects.length > 0 ? projects.map((p: any) => ({
+    image: `https://picsum.photos/seed/${p.id}/800/800?grayscale`, // Placeholder image
+    link: `/projects/${p.id}`,
+    title: p.title,
+    description: p.short_description || 'A revolutionary project on Project Escrow.',
+  })) : [
+    {
+      image: 'https://picsum.photos/seed/demo1/800/800?grayscale',
+      link: '/projects',
+      title: 'Project Alpha',
+      description: 'The future of decentralized funding.',
+    },
+    {
+      image: 'https://picsum.photos/seed/demo2/800/800?grayscale',
+      link: '/projects',
+      title: 'EcoBuild',
+      description: 'Sustainable housing for everyone.',
+    },
+    {
+      image: 'https://picsum.photos/seed/demo3/800/800?grayscale',
+      link: '/projects',
+      title: 'TechNova',
+      description: 'Next-gen AI assistant.',
+    },
+    {
+      image: 'https://picsum.photos/seed/demo4/800/800?grayscale',
+      link: '/projects',
+      title: 'ArtFlow',
+      description: 'Empowering digital artists.',
+    }
+  ]
+
   useLayoutEffect(() => {
     // Context for cleanup
     const ctx = gsap.context(() => {
+      // Parallax for Coin Model
       if (coinRef.current) {
         gsap.to(coinRef.current, {
-          y: 200, // Move down 200px
+          y: 300, // Move down significantly
+          rotation: 360, // Rotate while scrolling
           ease: 'none',
           scrollTrigger: {
-            trigger: 'body',
+            trigger: heroRef.current,
             start: 'top top',
             end: 'bottom top',
-            scrub: 1, // Smooth scrubbing
+            scrub: 1,
           },
         })
+      }
+
+      // Parallax for Hero Text
+      gsap.to('.hero-text', {
+        y: -100,
+        opacity: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: heroRef.current,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: 1,
+        },
+      })
+
+      // Infinite Menu Growing Animation
+      if (infiniteMenuRef.current) {
+        ScrollTrigger.create({
+          trigger: infiniteMenuRef.current,
+          start: "top bottom", // Start when top of section hits bottom of viewport
+          end: "top top",      // End when top of section hits top of viewport
+          scrub: true,
+          onUpdate: (self) => {
+            // Optional: You can use self.progress for custom logic
+          }
+        });
+
+        // Pinning logic
+        ScrollTrigger.create({
+          trigger: infiniteMenuRef.current,
+          start: "top top",
+          end: "+=150%", // Pin for longer to enjoy the view
+          pin: true,
+          scrub: true,
+        });
+
+        // Animation: Start small and grow to full screen
+        gsap.fromTo(infiniteMenuRef.current,
+          {
+            width: "80%",
+            height: "80vh",
+            borderRadius: "40px",
+            margin: "0 auto",
+            y: 100
+          },
+          {
+            width: "100%",
+            height: "100vh",
+            borderRadius: "0px",
+            margin: "0",
+            y: 0,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: infiniteMenuRef.current,
+              start: "top bottom",
+              end: "top top",
+              scrub: 1,
+            }
+          }
+        )
       }
     })
 
@@ -73,20 +172,33 @@ export default function Home() {
 
   // Landing page for non-logged-in users
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 lg:py-32 bg-bg">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row items-center gap-12">
-            <div className="flex-1 text-center lg:text-left" data-aos="fade-right">
-              <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight text-text">
+      <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden py-20 lg:py-32 bg-bg">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="flex flex-col  items-center justify-center gap-12">
+            <div className="flex-1 text-center lg:text-center hero-text">
+              <h1 className="text-5xl lg:text-7xl font-bold mb-6 leading-tight text-text">
                 Milestone-Based
-                <span className="text-primary"> Crowdfunding</span>
+                <div className="flex justify-center lg:justify-start">
+                  <RotatingText
+                    texts={['Crowdfunding', 'Security', 'Transparency', 'Community']}
+                    mainClassName="text-primary block overflow-hidden mx-auto"
+                    staggerFrom="last"
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    exit={{ y: "-120%" }}
+                    staggerDuration={0.025}
+                    splitLevelClassName="overflow-hidden pb-0.5 sm:pb-1 md:pb-1"
+                    transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                    rotationInterval={2000}
+                  />
+                </div>
               </h1>
-              <p className="text-xl mb-8 max-w-2xl mx-auto lg:mx-0 text-text opacity-80" data-aos="fade-up" data-aos-delay="200">
+              <p className="text-xl mb-8 max-w-2xl mx-auto lg:mx-0 text-text opacity-80">
                 Support innovative projects with milestone-based funding, community governance, and secure escrow. Your funds are protected until milestones are achieved.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start" data-aos="fade-up" data-aos-delay="400">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-center">
                 <Link href="/projects" className="btn-primary text-lg px-8 py-3 inline-block text-center">
                   Explore Projects
                 </Link>
@@ -95,17 +207,45 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            <div className="flex-1 flex justify-center" data-aos="fade-left" data-aos-delay="200">
-              <div ref={coinRef} className="will-change-transform">
+            <div className="flex-1 flex justify-center relative">
+              <div ref={coinRef} className="will-change-transform w-full h-[500px] flex items-center justify-center">
                 <CoinModel size="large" />
               </div>
             </div>
           </div>
         </div>
+
+        {/* Background Elements for Parallax */}
+        {/* Background Elements for Parallax */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+          <GridMotion
+            items={[
+              'Crowdfunding', 'Escrow', 'Security', 'Milestones',
+              'Community', 'Transparency', 'Blockchain', 'Trust',
+              'Innovation', 'Support', 'Growth', 'Future',
+              'Decentralized', 'Smart Contracts', 'Voting', 'Governance',
+              'Protection', 'Refunds', 'Backers', 'Creators',
+              'Projects', 'Funding', 'Success', 'Launch',
+              'Global', 'Connect', 'Build', 'Create'
+            ]}
+            gradientColor="#1a1a1a"
+          />
+          <div className="absolute top-0 left-0 w-full h-full bg-bg/80 z-[1]"></div>
+        </div>
+      </section>
+
+      {/* Infinite Menu Section */}
+      <section ref={infiniteMenuRef} className="relative h-screen bg-black overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-b from-bg to-transparent h-32"></div>
+        <div className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none bg-gradient-to-t from-bg to-transparent h-32"></div>
+
+        <div className="w-full h-full">
+          <InfiniteMenu items={menuItems} />
+        </div>
       </section>
 
       {/* Features Section with MagicBento */}
-      <section className="py-20 bg-surface">
+      <section className="py-20 bg-surface relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className="text-4xl font-bold mb-4 text-text">
@@ -200,7 +340,7 @@ export default function Home() {
       </section>
 
       {/* Featured Projects Section */}
-      <section className="py-20 bg-bg">
+      <section className="py-20 bg-bg relative z-10">
         <div className="container mx-auto px-4">
           <div className="mb-8 flex justify-between items-center" data-aos="fade-up">
             <div>
@@ -236,7 +376,7 @@ export default function Home() {
       </section>
 
       {/* FAQ Section with Accordion */}
-      <section className="py-20 bg-surface">
+      <section className="py-20 bg-border relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12" data-aos="fade-up">
             <h2 className="text-4xl font-bold mb-4 text-text">
@@ -289,7 +429,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-primary">
+      <section className="py-20 bg-primary relative z-10">
         <div className="container mx-auto px-4 text-center" data-aos="zoom-in">
           <h2 className="text-4xl font-bold mb-4 text-primary-text">
             Ready to Get Started?

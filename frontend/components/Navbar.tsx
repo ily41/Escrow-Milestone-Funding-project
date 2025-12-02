@@ -5,7 +5,6 @@ import { useState, useMemo } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import ThemeToggle from './ThemeToggle'
 import HamburgerMenu from './HamburgerMenu'
-import GooeyNav from './GooeyNav'
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth()
@@ -48,27 +47,28 @@ export default function Navbar() {
             <span className="sm:hidden">MC</span>
           </Link>
 
-          {/* Desktop Navigation with GooeyNav */}
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            {!loading && (
-              <GooeyNav
-                items={navItems}
-                particleCount={15}
-                particleDistances={[90, 10]}
-                particleR={100}
-                initialActiveIndex={0}
-                animationTime={600}
-                timeVariance={300}
-                colors={[1, 2, 3, 1, 2, 3, 1, 4]}
-              />
-            )}
+            <div className="flex items-center gap-6 mr-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-text hover:text-primary transition-colors duration-300 font-medium"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
 
             <ThemeToggle />
 
             {/* User info and logout for authenticated users */}
             {!loading && user && (
               <div className="flex items-center gap-3">
-                <span className="px-2 py-1 transition-all duration-300 hover:scale-110 text-text">{user.username}</span>
+                <Link href="/profile" className="px-2 py-1 transition-all duration-300 hover:scale-110 text-text hover:text-primary font-medium">
+                  {user.username}
+                </Link>
                 <button
                   onClick={logout}
                   className="btn-secondary text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg"
@@ -147,7 +147,13 @@ export default function Navbar() {
                       <span className="relative z-10">Backer Dashboard</span>
                       <span className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-10 transition-opacity duration-300 bg-primary"></span>
                     </Link>
-                    <div className="px-4 py-2 transition-all duration-300 hover:scale-105 text-text">{user.username}</div>
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-2 transition-all duration-300 hover:scale-105 text-text hover:text-primary font-medium"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {user.username}
+                    </Link>
                     <button
                       onClick={() => {
                         logout()

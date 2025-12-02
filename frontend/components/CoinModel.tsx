@@ -22,7 +22,7 @@ function Coin({ isHovered }: { isHovered: boolean }) {
     <group ref={meshRef}>
       <primitive
         object={scene}
-        scale={3.0}
+        scale={4.5}
         rotation={[0, 0, 0]}
         castShadow
         receiveShadow
@@ -35,8 +35,8 @@ interface CoinModelProps {
   size?: 'small' | 'large'
 }
 
-export default function CoinModel({ size = 'small' }: CoinModelProps) {
-  const containerClass = size === 'large' ? 'w-64 h-64 lg:w-96 lg:h-96' : 'w-12 h-12'
+export default function CoinModel({ size = 'large' }: CoinModelProps) {
+  const containerClass = size === 'large' ? 'w-80 h-80 lg:w-[500px] lg:h-[500px]' : 'w-12 h-12'
   const [isHovered, setIsHovered] = useState(false)
 
   return (
@@ -46,7 +46,7 @@ export default function CoinModel({ size = 'small' }: CoinModelProps) {
       onMouseLeave={() => setIsHovered(false)}
     >
       <Canvas
-        camera={{ position: [0, 0, 4], fov: 45 }}
+        camera={{ position: [0, 0, 3.5], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
       >
         {/* HDRI Environment - provides realistic lighting and reflections */}
