@@ -14,6 +14,7 @@ from .serializers import (
     PledgeSerializer, ReleaseSerializer,
     RefundSerializer, AuditLogSerializer, VoteSerializer,
     ProjectCreateSerializer, MilestoneCreateSerializer,
+    PledgeCreateSerializer,
 )
 from .web3_client import fake_tx_hash
 
@@ -152,13 +153,9 @@ class MilestoneActivationView(APIView):
         except Milestone.DoesNotExist:
             return Response({"detail": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if milestone.is_activated:
-            return Response({"detail": "Milestone already activated"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Temporary fix: Update DB directly
-        milestone.is_activated = True
-        milestone.save(using='indexer')
-
+        # Note: is_activated field removed from model
+        # In real implementation, this would trigger smart contract call
+        
         tx_hash = fake_tx_hash()
 
         return Response({
@@ -170,16 +167,20 @@ class MilestoneActivationView(APIView):
 class PledgeCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(summary="Backer pledges to project (on-chain placeholder)")
+    @extend_schema(
+        summary="Backer pledges to project (on-chain placeholder)",
+        request=PledgeCreateSerializer,
+        responses={200: PledgeSerializer}
+    )
     def post(self, request, project_id):
         profile = require_role(request.user, ["backer"])
         if not profile.wallet_address:
             return Response({"detail": "Backer wallet not linked"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check for active milestones
-        has_active = Milestone.objects.using('indexer').filter(project__project_id=project_id, is_activated=True).exists()
-        if not has_active:
-            return Response({"detail": "Cannot pledge: No active milestones"}, status=status.HTTP_400_BAD_REQUEST)
+        # Check for milestones (is_activated field removed from model)
+        has_milestones = Milestone.objects.using('indexer').filter(project__project_id=project_id).exists()
+        if not has_milestones:
+            return Response({"detail": "Cannot pledge: No milestones for this project"}, status=status.HTTP_400_BAD_REQUEST)
 
         amount = request.data.get("amount")
         if not amount:
