@@ -9,6 +9,10 @@ class Project(models.Model):
     total_pledged = models.DecimalField(max_digits=38, decimal_places=18, default=0)
     deadline = models.DateTimeField()
     status = models.CharField(max_length=64)
+    
+    # Sync Metadata
+    on_chain_id = models.IntegerField(null=True, unique=True)
+    created_tx_hash = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         managed = True
@@ -27,6 +31,8 @@ class Milestone(models.Model):
     
     # On-chain data
     on_chain_id = models.IntegerField(null=True, blank=True)
+    voting_session_id = models.CharField(max_length=255, null=True, blank=True)
+    transaction_hash = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         managed = True
@@ -37,7 +43,9 @@ class Pledge(models.Model):
     project = models.ForeignKey(Project, on_delete=models.DO_NOTHING)
     backer_address = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=38, decimal_places=18)
-    transaction_hash = models.CharField(max_length=255)
+    transaction_hash = models.CharField(max_length=255, unique=True)
+    block_number = models.IntegerField(null=True, blank=True)
+    status = models.CharField(max_length=64, default='confirmed')
     pledged_at = models.DateTimeField()
 
     class Meta:
@@ -89,3 +97,12 @@ class Vote(models.Model):
         managed = True
         db_table = 'votes'
         unique_together = ('milestone', 'backer_address')
+
+class SyncState(models.Model):
+    contract_address = models.CharField(max_length=255, unique=True)
+    last_processed_block = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = True
+        db_table = 'sync_state'

@@ -9,6 +9,7 @@ class MilestoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Milestone
         fields = "__all__"
+        read_only_fields = ('on_chain_id', 'transaction_hash', 'voting_session_id', 'status')
 
     def get_approve_votes_count(self, obj):
         return obj.votes.filter(decision='approve').count()
@@ -23,12 +24,13 @@ class MilestoneSerializer(serializers.ModelSerializer):
         return 0
 
 class ProjectSerializer(serializers.ModelSerializer):
-    milestones = MilestoneSerializer(many=True, read_only=True, source='milestone_set')
+    # milestones = MilestoneSerializer(many=True, read_only=True, source='milestone_set')
     progress_percentage = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = "__all__"
+        read_only_fields = ('on_chain_id', 'created_tx_hash', 'current_funding', 'status')
 
     def get_progress_percentage(self, obj):
         if obj.funding_goal > 0:
@@ -39,6 +41,7 @@ class PledgeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pledge
         fields = "__all__"
+        read_only_fields = ('transaction_hash', 'block_number', 'status')
 
 class ReleaseSerializer(serializers.ModelSerializer):
     class Meta:
