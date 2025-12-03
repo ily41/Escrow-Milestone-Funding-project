@@ -37,5 +37,17 @@
         66
       ]
     ]
+  },
+  "backer_clustering": {
+    "silhouette_score": 0.490980598231188,
+    "n_clusters": 3
+  },
+  "pledge_anomaly": {
+    "anomalies_detected": 49,
+    "total_pledges": 980
+  },
+  "project_recommender": {
+    "mse": 619531.3038709926,
+    "components": 20
   }
 }
