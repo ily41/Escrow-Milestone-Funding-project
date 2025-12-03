@@ -60,6 +60,9 @@ ds_pipeline/
 │   ├── project_success_scaler.pkl
 │   ├── milestone_risk_model.pkl
 │   ├── milestone_risk_scaler.pkl
+│   ├── backer_clustering_model.pkl
+│   ├── pledge_anomaly_model.pkl
+│   ├── project_recommender_model.pkl
 │   └── metrics.json
 ├── tests/
 │   └── test_features.py  # Unit tests
@@ -77,9 +80,24 @@ ds_pipeline/
 
 ### Model 2: Milestone Risk Assessment
 - **Algorithm**: Gradient Boosting Classifier
-- **Features**: funding_amount, vote_count, approval_rate
+- **Features**: funding_amount, vote_count, total_vote_weight
 - **Target**: Binary (0=Low Risk, 1=High Risk)
-- **Expected Accuracy**: ~78-85%
+- **Expected Accuracy**: ~94%
+
+### Model 3: Backer Segmentation
+- **Algorithm**: K-Means Clustering
+- **Features**: total_pledged, avg_pledge, pledge_count
+- **Clusters**: Casuals, Regulars, Whales
+
+### Model 4: Pledge Anomaly Detection
+- **Algorithm**: Isolation Forest
+- **Features**: amount, goal_ratio
+- **Use Case**: Fraud detection (money laundering, wash trading)
+
+### Model 5: Project Recommender
+- **Algorithm**: Truncated SVD (Collaborative Filtering)
+- **Input**: User-Item Matrix (Backer-Project Pledges)
+- **Output**: Personalized project suggestions
 
 ## Key Features
 
