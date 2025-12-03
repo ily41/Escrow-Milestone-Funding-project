@@ -5,9 +5,11 @@ Predicts: 1) Project Success, 2) Milestone Risk
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, classification_report, confusion_matrix
-from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, IsolationForest
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, classification_report, confusion_matrix, silhouette_score, mean_squared_error
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.cluster import KMeans
+from sklearn.decomposition import TruncatedSVD
 import joblib
 import json
 from datetime import datetime
@@ -187,26 +189,105 @@ class EscrowMLPipeline:
         
         return metrics
     
-    def save_models(self, output_dir='ds_pipeline/models'):
-        """Save trained models and metrics"""
-        import os
-        os.makedirs(output_dir, exist_ok=True)
+    def train_backer_clustering(self):
+        """Segment backers using K-Means Clustering"""
+        print("\n=== Training Backer Segmentation (K-Means) ===")
         
-        for name, model in self.models.items():
-            joblib.dump(model, f'{output_dir}/{name}_model.pkl')
-            joblib.dump(self.scalers[name], f'{output_dir}/{name}_scaler.pkl')
+        # Aggregate backer stats
+        backer_stats = self.df_pledges.groupby('backer_id').agg({
+            'amount': ['sum', 'mean', 'count'],
+            'project_id': 'nunique'
+        }).reset_index()
+        backer_stats.columns = ['backer_id', 'total_pledged', 'avg_pledge', 'pledge_count', 'unique_projects']
         
-        with open(f'{output_dir}/metrics.json', 'w') as f:
-            json.dump(self.metrics, f, indent=2)
+        # Features for clustering
+        X = backer_stats[['total_pledged', 'avg_pledge', 'pledge_count', 'unique_projects']]
         
-        print(f"\nModels saved to {output_dir}/")
-    
+        # Scale
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        
+        # Train K-Means (3 clusters: Whales, Regulars, Casuals)
+        kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+        clusters = kmeans.fit_predict(X_scaled)
+        
+        # Metrics
+        score = silhouette_score(X_scaled, clusters)
+        print(f"Silhouette Score: {score:.3f}")
+        
+        # Interpret clusters
+        backer_stats['cluster'] = clusters
+        print("\nCluster Centers:")
+        print(backer_stats.groupby('cluster')[['total_pledged', 'pledge_count']].mean())
+        
+        self.models['backer_clustering'] = kmeans
+        self.scalers['backer_clustering'] = scaler
+        self.metrics['backer_clustering'] = {'silhouette_score': score, 'n_clusters': 3}
+        
+        return self.metrics['backer_clustering']
+
+    def train_pledge_anomaly_detection(self):
+        """Detect suspicious pledges using Isolation Forest"""
+        print("\n=== Training Pledge Anomaly Detection (Isolation Forest) ===")
+        
+        # Features: Amount, and deviation from project average
+        pledges = self.df_pledges.merge(
+            self.df_projects[['project_id', 'funding_goal']], 
+            on='project_id'
+        )
+        pledges['goal_ratio'] = pledges['amount'] / pledges['funding_goal']
+        
+        X = pledges[['amount', 'goal_ratio']]
+        
+        # Train Isolation Forest
+        iso_forest = IsolationForest(contamination=0.05, random_state=42)
+        preds = iso_forest.fit_predict(X)
+        
+        # Metrics
+        n_anomalies = (preds == -1).sum()
+        print(f"Detected {n_anomalies} anomalies out of {len(X)} pledges")
+        
+        self.models['pledge_anomaly'] = iso_forest
+        self.metrics['pledge_anomaly'] = {'anomalies_detected': int(n_anomalies), 'total_pledges': len(X)}
+        
+        return self.metrics['pledge_anomaly']
+
+    def train_project_recommender(self):
+        """Recommend projects using SVD (Collaborative Filtering)"""
+        print("\n=== Training Project Recommender (SVD) ===")
+        
+        # Create User-Item Matrix
+        user_item_matrix = self.df_pledges.pivot_table(
+            index='backer_id', 
+            columns='project_id', 
+            values='amount', 
+            fill_value=0
+        )
+        
+        # SVD
+        X = user_item_matrix.values
+        svd = TruncatedSVD(n_components=min(20, X.shape[1]-1), random_state=42)
+        X_reduced = svd.fit_transform(X)
+        X_reconstructed = svd.inverse_transform(X_reduced)
+        
+        # Metrics (MSE)
+        mse = mean_squared_error(X, X_reconstructed)
+        print(f"Reconstruction MSE: {mse:.3f}")
+        
+        self.models['project_recommender'] = svd
+        self.metrics['project_recommender'] = {'mse': mse, 'components': svd.n_components}
+        
+        return self.metrics['project_recommender']
+
     def run_pipeline(self):
         """Execute full pipeline"""
         self.load_data()
         self.engineer_features()
         self.train_project_success_model()
         self.train_milestone_risk_model()
+        self.train_backer_clustering()
+        self.train_pledge_anomaly_detection()
+        self.train_project_recommender()
         self.save_models()
         print("\n✓ Pipeline complete!")
 
