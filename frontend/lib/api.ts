@@ -158,6 +158,12 @@ export const api = createApi({
       providesTags: ['Refund'],
     }),
 
+    // Wallet endpoints
+    getWallet: builder.query({
+      query: () => '/finance/wallet/',
+      providesTags: ['User'],
+    }),
+
     // Vote endpoints
     voteOnMilestone: builder.mutation({
       query: ({ milestone_id, decision }) => ({
@@ -214,6 +220,7 @@ export const {
   useGetPledgesQuery,
   useCreatePledgeMutation,
   useGetRefundsQuery,
+  useGetWalletQuery,
   useVoteOnMilestoneMutation,
   useOpenVotingMutation,
   useReleaseFundsMutation,

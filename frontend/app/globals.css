@@ -1,24 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  /* Warm Japanese Matte Color Palette */
-  --color-soft-gold: #EDE1B1;
-  --color-warm-beige: #CDB79E;
-  --color-light-cream: #FAFAD2;
-  --color-matte-black: #2E2E2E;
-  --color-deep-red: #8B0000;
-  --color-success-light: #4CAF50;
-  --color-success-dark: #66BB6A;
+  /* Light Mode Palette (Default) */
+  --color-bg: #f4f4f0;
+  --color-surface: #ffffff;
+  --color-text: #1a1a1a;
+  --color-primary: #7c8047;
+  --color-primary-text: #ffffff;
+  --color-secondary: #4b8282;
+  --color-accent: #d7745c;
+  --color-border: #e0e0d8;
+  --color-success: #7c8047;
+  --color-success-dark: #4b8282;
 
-  /* Semantic Colors */
-  --color-bg: var(--color-light-cream);
-  --color-surface: var(--color-soft-gold);
-  --color-text: var(--color-matte-black);
-  --color-primary: var(--color-deep-red);
-  --color-primary-text: var(--color-light-cream);
-  --color-secondary: var(--color-warm-beige);
-  --color-border: var(--color-warm-beige);
-  --color-success: var(--color-success-light);
+  /* Legacy Compatibility */
+  --color-soft-gold: var(--color-surface);
+  --color-warm-beige: var(--color-border);
+  --color-light-cream: var(--color-bg);
+  --color-matte-black: var(--color-text);
+  --color-deep-red: var(--color-primary);
+  --color-success-light: var(--color-success);
+
+  /* GooeyNav Particle Colors */
+  --gooey-color-1: #ebf29c;
+  --gooey-color-2: #4b8282;
+  --gooey-color-3: #d7745c;
+  --gooey-color-4: #7c8047;
 
   /* Backward Compatibility */
   --bg: var(--color-bg);
@@ -31,18 +38,19 @@
   --success: var(--color-success);
 }
 
-/* Manual Dark Mode Class */
+/* Dark Mode */
 .dark {
-  --color-bg: var(--color-matte-black);
-  --color-surface: #3B3B3B;
-  --color-text: var(--color-light-cream);
-  --color-primary: var(--color-soft-gold);
-  --color-primary-text: var(--color-matte-black);
-  --color-secondary: var(--color-warm-beige);
-  --color-border: var(--color-warm-beige);
-  --color-success: var(--color-success-dark);
+  --color-bg: #1a1a1a;
+  --color-surface: #2e2e2b;
+  --color-text: #f4f4f0;
+  --color-primary: #ebf29c;
+  --color-primary-text: #1a1a1a;
+  --color-secondary: #4b8282;
+  --color-accent: #d7745c;
+  --color-border: #7c8047;
+  --color-success: #7c8047;
 
-  --gradient-primary: var(--gradient-dark);
+  --gradient-primary: linear-gradient(135deg, #ebf29c 0%, #4b8282 100%);
 }
 
 body {
@@ -56,7 +64,7 @@ body {
   }
 
   .btn-secondary {
-    @apply bg-secondary text-matte-black px-4 py-2 rounded-lg transition-all duration-150 font-medium border-none hover:opacity-90 dark:text-light-cream;
+    @apply bg-secondary text-white px-4 py-2 rounded-lg transition-all duration-150 font-medium border-none hover:opacity-90 dark:text-white;
   }
 
   .card {

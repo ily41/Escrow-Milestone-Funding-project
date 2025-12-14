@@ -1,14 +1,31 @@
 'use client'
 
-import { Suspense, useState, useRef } from 'react'
+import { Suspense, useState, useRef, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Environment } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 
-function Coin({ isHovered }: { isHovered: boolean }) {
+function Coin({ isHovered, opacity = 1 }: { isHovered: boolean; opacity?: number }) {
   const { scene } = useGLTF('/models/coin/coin.gltf')
   const meshRef = useRef<THREE.Group>(null)
+
+  useEffect(() => {
+    scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach((mat) => {
+            mat.transparent = true;
+            mat.opacity = opacity;
+          });
+        } else {
+          mesh.material.transparent = true;
+          mesh.material.opacity = opacity;
+        }
+      }
+    });
+  }, [scene, opacity]);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -22,7 +39,7 @@ function Coin({ isHovered }: { isHovered: boolean }) {
     <group ref={meshRef}>
       <primitive
         object={scene}
-        scale={3.0}
+        scale={4.5}
         rotation={[0, 0, 0]}
         castShadow
         receiveShadow
@@ -33,10 +50,11 @@ function Coin({ isHovered }: { isHovered: boolean }) {
 
 interface CoinModelProps {
   size?: 'small' | 'large'
+  opacity?: number
 }
 
-export default function CoinModel({ size = 'small' }: CoinModelProps) {
-  const containerClass = size === 'large' ? 'w-64 h-64 lg:w-96 lg:h-96' : 'w-12 h-12'
+export default function CoinModel({ size = 'large', opacity = 1 }: CoinModelProps) {
+  const containerClass = size === 'large' ? 'w-80 h-80 lg:w-[500px] lg:h-[500px]' : 'w-16 h-16'
   const [isHovered, setIsHovered] = useState(false)
 
   return (
@@ -46,7 +64,7 @@ export default function CoinModel({ size = 'small' }: CoinModelProps) {
       onMouseLeave={() => setIsHovered(false)}
     >
       <Canvas
-        camera={{ position: [0, 0, 4], fov: 45 }}
+        camera={{ position: [0, 0, 3.5], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
       >
         {/* HDRI Environment - provides realistic lighting and reflections */}
@@ -61,7 +79,7 @@ export default function CoinModel({ size = 'small' }: CoinModelProps) {
           />
 
           {/* Coin model */}
-          <Coin isHovered={isHovered} />
+          <Coin isHovered={isHovered} opacity={opacity} />
 
           {/* Controls */}
           <OrbitControls

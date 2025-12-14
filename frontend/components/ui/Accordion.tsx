@@ -33,7 +33,7 @@ const AccordionItem: React.FC<AccordionItemProps> = ({ title, children, isOpen, 
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
                     }`}
             >
-                <div className="p-5 border border-b-0 border-gray-200 dark:border-gray-700 dark:bg-gray-900">
+                <div className="p-5 border border-b-0 border-gray-200 dark:border-gray-700 dark:bg-[#2a2a2a]">
                     {children}
                 </div>
             </div>
@@ -60,7 +60,7 @@ const Accordion: React.FC<AccordionProps> = ({ items, allowMultiple = false }) =
     };
 
     return (
-        <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="w-full bg-white dark:bg-[#2a2a2a] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             {items.map((item, index) => (
                 <AccordionItem
                     key={index}

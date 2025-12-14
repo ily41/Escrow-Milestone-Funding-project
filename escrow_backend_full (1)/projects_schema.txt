@@ -1,0 +1,16 @@
+Projects table schema:
+project_id: uuid
+creator_id: uuid
+escrow_address: text
+title: text
+description: text
+funding_goal: numeric
+current_funding: numeric
+deadline: timestamp with time zone
+created_at: timestamp with time zone
+status: integer
+onchain_project_id: bigint
+creator_address: character varying
+on_chain_id: integer
+created_tx_hash: character varying
+total_pledged: numeric

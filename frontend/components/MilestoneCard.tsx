@@ -203,8 +203,16 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
     }
   }
 
-  const getStatusConfig = (status: string) => {
-    const statusLower = status?.toLowerCase() || 'pending'
+  const getStatusConfig = (status: string | number) => {
+    let statusLower = String(status || 'pending').toLowerCase()
+
+    // Map backend integer status to frontend string status
+    if (status === 0 || status === '0') statusLower = 'pending'
+    else if (status === 1 || status === '1') statusLower = 'voting'
+    else if (status === 2 || status === '2') statusLower = 'approved'
+    else if (status === 3 || status === '3') statusLower = 'rejected'
+    else if (status === 4 || status === '4') statusLower = 'completed'
+
     switch (statusLower) {
       case 'completed':
       case 'approved':
@@ -243,7 +251,18 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
   const statusConfig = getStatusConfig(milestone.status)
   const StatusIcon = statusConfig.Icon
   const loading = isOpeningVoting || isVoting || isReleasing || isDeleting || isActivating
-  const milestoneStatus = String(milestone.status || '').toLowerCase()
+
+  // Helper to get normalized status string for logic checks
+  const getNormalizedStatus = (s: string | number) => {
+    if (s === 0 || s === '0') return 'pending'
+    if (s === 1 || s === '1') return 'voting'
+    if (s === 2 || s === '2') return 'approved'
+    if (s === 3 || s === '3') return 'rejected'
+    if (s === 4 || s === '4') return 'completed'
+    return String(s || '').toLowerCase()
+  }
+
+  const milestoneStatus = getNormalizedStatus(milestone.status)
   const canDelete = milestoneStatus !== 'pending' && milestoneStatus !== 'voting'
   const isActivated = milestone.is_activated
 
