@@ -21,13 +21,17 @@ if (typeof window !== 'undefined') {
 export default function Home() {
   const router = useRouter()
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
+  const [mounted, setMounted] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
   const infiniteMenuRef = useRef<HTMLDivElement>(null)
 
   // Fetch active projects
-  const { data: projects = [] } = useGetProjectsQuery({ status: 'active' }, {
+  const { data: projectsData } = useGetProjectsQuery({ status: 'active' }, {
     skip: isLoggedIn === null, // Skip until auth check is done
   })
+
+  // Ensure projects is always an array
+  const projects = Array.isArray(projectsData) ? projectsData : []
 
   // Map projects to InfiniteMenu items
   const menuItems: MenuItem[] = projects.length > 0 ? projects.map((p: any) => ({
@@ -62,7 +66,15 @@ export default function Home() {
     }
   ]
 
+  // Set mounted state
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   useLayoutEffect(() => {
+    // Only run GSAP on client side after mount
+    if (!mounted || typeof window === 'undefined') return
+
     // Context for cleanup
     const ctx = gsap.context(() => {
       // Parallax for Hero Text
@@ -127,13 +139,17 @@ export default function Home() {
     })
 
     return () => ctx.revert()
-  }, [])
+  }, [mounted])
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return
+
     const token = localStorage.getItem('access_token')
     if (token) {
       setIsLoggedIn(true)
-      router.push('/home')
+      // Use replace to avoid adding to history and prevent hydration issues
+      router.replace('/home')
     } else {
       setIsLoggedIn(false)
     }
@@ -343,11 +359,11 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projects.slice(0, 6).map((project: any, idx: number) => (
+              {/* {projects.slice(0, 6).map((project: any, idx: number) => (
                 <div key={project.project_id} data-aos="fade-up" data-aos-delay={idx * 100}>
                   <ProjectCard project={project} />
                 </div>
-              ))}
+              ))} */}
             </div>
           )}
         </div>

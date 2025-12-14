@@ -14,7 +14,14 @@ function ProjectsContent() {
   const status = searchParams.get('status') || undefined
   const search = searchParams.get('search') || undefined
 
-  const { data: projects = [], isLoading, error } = useGetProjectsQuery({ status, search })
+  const { data: projectsData = [], isLoading, error } = useGetProjectsQuery({ status, search })
+
+  // Handle paginated response structure
+  const projects = Array.isArray(projectsData)
+    ? projectsData
+    : Array.isArray(projectsData?.results)
+      ? projectsData.results
+      : []
 
   return (
     <div className="container mx-auto px-4 py-8">

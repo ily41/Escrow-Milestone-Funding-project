@@ -8,15 +8,19 @@ import AuthGuard from '@/components/AuthGuard'
 export default function BackerDashboard() {
   const { user, loading: authLoading } = useAuth()
 
-  const { data: pledges = [], isLoading: pledgesLoading } = useGetPledgesQuery(
+  const { data: pledgesData, isLoading: pledgesLoading } = useGetPledgesQuery(
     { backer: user?.id },
     { skip: !user }
   )
 
-  const { data: refunds = [], isLoading: refundsLoading } = useGetRefundsQuery(
+  const { data: refundsData, isLoading: refundsLoading } = useGetRefundsQuery(
     { backer: user?.id },
     { skip: !user }
   )
+
+  // Ensure arrays
+  const pledgesList = Array.isArray(pledgesData) ? pledgesData : []
+  const refundsList = Array.isArray(refundsData) ? refundsData : []
 
   if (authLoading || pledgesLoading || refundsLoading) {
     return (
@@ -44,7 +48,7 @@ export default function BackerDashboard() {
     )
   }
 
-  const totalPledged = pledges.reduce((sum: number, pledge: any) => sum + parseFloat(pledge.amount || 0), 0)
+  const totalPledged = pledgesList.reduce((sum: number, pledge: any) => sum + parseFloat(pledge.amount || 0), 0)
 
   return (
     <AuthGuard>
@@ -68,7 +72,7 @@ export default function BackerDashboard() {
               Active Pledges
             </h3>
             <p className="text-3xl font-bold" style={{ color: 'var(--text)' }}>
-              {pledges.length}
+              {pledgesList.length}
             </p>
           </div>
           <div className="card">
@@ -76,7 +80,7 @@ export default function BackerDashboard() {
               Refunds Received
             </h3>
             <p className="text-3xl font-bold" style={{ color: 'var(--text)' }}>
-              {refunds.length}
+              {refundsList.length}
             </p>
           </div>
         </div>
@@ -86,7 +90,7 @@ export default function BackerDashboard() {
           <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--text)' }}>
             My Pledges
           </h2>
-          {pledges.length === 0 ? (
+          {pledgesList.length === 0 ? (
             <div className="card text-center py-12">
               <p style={{ color: 'var(--text)', opacity: 0.7 }}>
                 You haven't made any pledges yet.
@@ -97,7 +101,7 @@ export default function BackerDashboard() {
             </div>
           ) : (
             <div className="space-y-4">
-              {pledges.map((pledge: any) => (
+              {pledgesList.map((pledge: any) => (
                 <div key={pledge.pledge_id} className="card">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -123,13 +127,13 @@ export default function BackerDashboard() {
         </div>
 
         {/* Refunds */}
-        {refunds.length > 0 && (
+        {refundsList.length > 0 && (
           <div>
             <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--text)' }}>
               Refunds
             </h2>
             <div className="space-y-4">
-              {refunds.map((refund: any) => (
+              {refundsList.map((refund: any) => (
                 <div key={refund.refund_id} className="card">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">

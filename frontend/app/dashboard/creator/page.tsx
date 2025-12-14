@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  useGetProjectsQuery,
+  useGetMyProjectsQuery,
   useCreateProjectMutation,
   useActivateProjectMutation,
   useDeactivateProjectMutation,
@@ -20,10 +20,16 @@ export default function CreatorDashboard() {
   const { confirm, ConfirmComponent } = useConfirm()
   const { user, loading: authLoading } = useAuth()
 
-  const { data: projects = [], isLoading: projectsLoading, refetch } = useGetProjectsQuery(
-    { creator: user?.id },
-    { skip: !user?.is_creator }
-  )
+  const { data: projectsData, isLoading: projectsLoading, refetch } = useGetMyProjectsQuery(undefined, {
+    skip: !user?.is_creator
+  })
+
+  // Ensure projects is always an array (handling pagination)
+  const projectList = Array.isArray(projectsData)
+    ? projectsData
+    : Array.isArray(projectsData?.results)
+      ? projectsData.results
+      : []
 
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation()
   const [activateProject] = useActivateProjectMutation()
@@ -42,15 +48,13 @@ export default function CreatorDashboard() {
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      // Convert end_date to Unix timestamp
-      const deadlineTimestamp = Math.floor(new Date(formData.end_date).getTime() / 1000)
-
       await createProject({
         title: formData.title,
         description: formData.description,
-        funding_goal_eth: parseFloat(formData.goal_amount),
-        deadline_timestamp: deadlineTimestamp,
-        status: 'active',
+        goal_amount: parseFloat(formData.goal_amount),
+        currency: formData.currency,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
       }).unwrap()
 
       setShowCreateForm(false)
@@ -71,21 +75,28 @@ export default function CreatorDashboard() {
   }
 
   const handleActivate = async (projectId: number) => {
-    const confirmed = await confirm({
+    // Determine the type of confirmation based on what `confirm` expects
+    // Assuming `confirm` takes a string or an object, simplifying to string for safety if unsure,
+    // or matching the object structure used in `handleDeactivate` if consistent.
+    // Based on previous code, `confirm` returned from `useConfirm` might take specific props.
+    // Let's use the object form seen in `handleDeactivate` for consistency and safety.
+
+    const isConfirmed = await confirm({
       title: 'Activate Project',
-      message: 'Activate this project? It will be visible to backers.',
+      message: 'Are you sure you want to activate this project? It will become visible to backers.',
       confirmText: 'Activate',
       cancelText: 'Cancel',
-      type: 'warning',
+      type: 'warning'
     })
-    if (!confirmed) return
+
+    if (!isConfirmed) return
 
     try {
       await activateProject(projectId).unwrap()
       refetch()
       toast.success('Project activated!')
     } catch (error: any) {
-      const errorMessage = error?.data?.error || error?.data?.message || error?.error || 'Failed to activate project'
+      const errorMessage = error?.data?.error || error?.data?.message || 'Failed to activate project'
       toast.error(errorMessage)
     }
   }
@@ -229,17 +240,17 @@ export default function CreatorDashboard() {
 
         <div>
           <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--text)' }}>My Projects</h2>
-          {projects.length === 0 ? (
+          {projectList.length === 0 ? (
             <div className="card text-center py-12">
               <p style={{ color: 'var(--text)', opacity: 0.7 }}>You haven't created any projects yet.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {projects.map((project: any) => (
-                <div key={project.project_id} className="card">
+              {projectList.map((project: any) => (
+                <div key={project.id} className="card">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <Link href={`/projects/${project.project_id}`}>
+                      <Link href={`/projects/${project.id}`}>
                         <h3 className="text-xl font-semibold hover:opacity-80 transition-opacity" style={{ color: 'var(--text)' }}>
                           {project.title}
                         </h3>
@@ -254,7 +265,7 @@ export default function CreatorDashboard() {
                     <div className="flex gap-2">
                       {project.status === 'draft' && (
                         <button
-                          onClick={() => handleActivate(project.project_id)}
+                          onClick={() => handleActivate(project.id)}
                           className="btn-primary text-sm"
                         >
                           Activate
@@ -262,7 +273,7 @@ export default function CreatorDashboard() {
                       )}
                       {project.status === 'active' && (
                         <button
-                          onClick={() => handleDeactivate(project.project_id)}
+                          onClick={() => handleDeactivate(project.id)}
                           className="text-sm px-4 py-2 rounded-lg font-semibold transition-all duration-200 hover:opacity-90"
                           style={{
                             backgroundColor: 'var(--primary)',
@@ -272,7 +283,7 @@ export default function CreatorDashboard() {
                           Deactivate
                         </button>
                       )}
-                      <Link href={`/projects/${project.project_id}`} className="btn-secondary text-sm">
+                      <Link href={`/projects/${project.id}`} className="btn-secondary text-sm">
                         View
                       </Link>
                     </div>

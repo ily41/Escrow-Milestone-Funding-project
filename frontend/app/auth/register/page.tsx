@@ -31,8 +31,16 @@ export default function RegisterPage() {
     }
 
     try {
-      // Send only the fields the backend expects
-      const { password2, ...registrationData } = formData
+      // Map form data to backend expectations
+      const registrationData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        password2: formData.password2,
+        is_creator: formData.role === 'creator',
+        is_backer: true // All users are backers by default
+      }
+
       await register(registrationData).unwrap()
 
       // Auto-login after registration

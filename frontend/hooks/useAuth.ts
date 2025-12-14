@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useGetCurrentUserQuery } from '@/lib/api'
+import { useGetCurrentUserQuery, api } from '@/lib/api'
+import { store } from '@/lib/store'
 import type { User } from '@/lib/types'
 
 export function useAuth() {
@@ -48,6 +49,8 @@ export function useAuth() {
             localStorage.removeItem('access_token')
             localStorage.removeItem('refresh_token')
             setUser(null)
+            // Reset API state to clear cache
+            store.dispatch(api.util.resetApiState())
             router.push('/auth/login')
         }
 

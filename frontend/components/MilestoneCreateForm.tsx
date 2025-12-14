@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 interface MilestoneCreateFormProps {
-    onSubmit: (title: string, description: string, amount: number) => void
+    onSubmit: (title: string, description: string, amount: number, dueDate: string) => void
     loading: boolean
     remainingAmount: number
     currency: string
@@ -13,14 +13,16 @@ export default function MilestoneCreateForm({ onSubmit, loading, remainingAmount
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [amount, setAmount] = useState<number | ''>('')
+    const [dueDate, setDueDate] = useState('')
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        if (title && amount) {
-            onSubmit(title, description, Number(amount))
+        if (title && amount && dueDate) {
+            onSubmit(title, description, Number(amount), dueDate)
             setTitle('')
             setDescription('')
             setAmount('')
+            setDueDate('')
         }
     }
 
@@ -48,6 +50,17 @@ export default function MilestoneCreateForm({ onSubmit, loading, remainingAmount
                     onChange={(e) => setDescription(e.target.value)}
                     className="input-field w-full"
                     rows={3}
+                />
+            </div>
+
+            <div className="mb-3">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)', opacity: 0.8 }}>Due Date</label>
+                <input
+                    type="datetime-local"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="input-field w-full"
+                    required
                 />
             </div>
 

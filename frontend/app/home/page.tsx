@@ -9,12 +9,32 @@ export default function HomePage() {
   const { user, loading: authLoading } = useAuth()
 
   // Fetch projects with different statuses
-  const { data: activeProjects = [] } = useGetProjectsQuery({ status: 'active' })
-  const { data: fundedProjects = [] } = useGetProjectsQuery({ status: 'funded' })
-  const { data: myProjects = [] } = useGetProjectsQuery(
+  const { data: activeProjectsData } = useGetProjectsQuery({ status: 'active' })
+  const { data: fundedProjectsData } = useGetProjectsQuery({ status: 'funded' })
+  const { data: myProjectsData } = useGetProjectsQuery(
     { creator: user?.id },
     { skip: !user?.is_creator }
   )
+
+  // Ensure all project data is arrays
+  // Ensure all project data is arrays (handling pagination)
+  const activeProjects = Array.isArray(activeProjectsData)
+    ? activeProjectsData
+    : Array.isArray(activeProjectsData?.results)
+      ? activeProjectsData.results
+      : []
+
+  const fundedProjects = Array.isArray(fundedProjectsData)
+    ? fundedProjectsData
+    : Array.isArray(fundedProjectsData?.results)
+      ? fundedProjectsData.results
+      : []
+
+  const myProjects = Array.isArray(myProjectsData)
+    ? myProjectsData
+    : Array.isArray(myProjectsData?.results)
+      ? myProjectsData.results
+      : []
 
   if (authLoading) {
     return (

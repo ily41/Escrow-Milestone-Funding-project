@@ -1,6 +1,6 @@
 ﻿import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/'
 
 const getAuthToken = () => {
   if (typeof window !== 'undefined') {
@@ -26,20 +26,24 @@ export const api = createApi({
     // Auth endpoints
     login: builder.mutation({
       query: (credentials) => ({
-        url: '/auth/login/',
+        url: '/api/token/',
         method: 'POST',
         body: credentials,
       }),
     }),
     register: builder.mutation({
       query: (userData) => ({
-        url: '/auth/register/',
+        url: '/api/users/register/',
         method: 'POST',
         body: userData,
       }),
     }),
     getCurrentUser: builder.query({
-      query: () => '/auth/me/',
+      query: () => '/api/users/me/',
+      providesTags: ['User'],
+    }),
+    getCreatorProfile: builder.query({
+      query: () => '/api/users/creators/',
       providesTags: ['User'],
     }),
 
@@ -51,13 +55,17 @@ export const api = createApi({
       }),
       providesTags: ['Project'],
     }),
+    getMyProjects: builder.query({
+      query: () => '/api/projects/my_projects/',
+      providesTags: ['Project'],
+    }),
     getProject: builder.query({
       query: (id) => `/api/projects/${id}/`,
       providesTags: (result, error, id) => [{ type: 'Project', id }],
     }),
     createProject: builder.mutation({
       query: (projectData) => ({
-        url: '/api/projects/create/',
+        url: '/api/projects/',
         method: 'POST',
         body: projectData,
       }),
@@ -85,15 +93,15 @@ export const api = createApi({
         if (!projectId) {
           throw new Error('project_id is required')
         }
-        return `/api/projects/${projectId}/milestones/`
+        return `/api/projects/milestones/?project=${projectId}`
       },
       providesTags: ['Milestone'],
     }),
     createMilestone: builder.mutation({
       query: ({ projectId, ...milestoneData }) => ({
-        url: `/api/projects/${projectId}/milestones/create/`,
+        url: '/api/projects/milestones/',
         method: 'POST',
-        body: milestoneData,
+        body: { project: projectId, ...milestoneData },
       }),
       invalidatesTags: ['Milestone', 'Project'],
     }),
@@ -206,7 +214,9 @@ export const {
   useLoginMutation,
   useRegisterMutation,
   useGetCurrentUserQuery,
+  useGetCreatorProfileQuery,
   useGetProjectsQuery,
+  useGetMyProjectsQuery,
   useGetProjectQuery,
   useCreateProjectMutation,
   useActivateProjectMutation,

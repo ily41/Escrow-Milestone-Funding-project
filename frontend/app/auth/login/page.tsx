@@ -47,8 +47,8 @@ export default function LoginPage() {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="px-4 py-3 rounded" style={{ backgroundColor: 'var(--primary)', opacity: 0.1, border: '1px solid var(--primary)', color: 'var(--primary)' }}>
-              {error}
+            <div className="px-4 py-3 rounded" style={{ backgroundColor: 'rgba(139, 0, 0, 0.9)', border: '1px solid var(--primary)' }}>
+              <p style={{ color: 'white', margin: 0 }}>{error}</p>
             </div>
           )}
           <div className="space-y-4">
