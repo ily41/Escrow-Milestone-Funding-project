@@ -1,25 +1,16 @@
 const db = require("./db");
 
 module.exports = {
-  async upsertCreator(wallet) {
+  async findUserByWallet(wallet) {
+    // Look up user in Django's users_user table
     const q = `
-      INSERT INTO creators (wallet_address, status)
-      VALUES ($1,1)
-      ON CONFLICT (wallet_address)
-      DO UPDATE SET wallet_address = EXCLUDED.wallet_address
-      RETURNING creator_id;
+      SELECT id FROM users_user 
+      WHERE LOWER(wallet_address) = $1
     `;
-    return (await db.query(q, [wallet.toLowerCase()])).rows[0].creator_id;
-  },
-
-  async upsertBacker(wallet) {
-    const q = `
-      INSERT INTO backers (wallet_address, status)
-      VALUES ($1,1)
-      ON CONFLICT (wallet_address)
-      DO UPDATE SET wallet_address = EXCLUDED.wallet_address
-      RETURNING backer_id;
-    `;
-    return (await db.query(q, [wallet.toLowerCase()])).rows[0].backer_id;
+    const res = await db.query(q, [wallet.toLowerCase()]);
+    if (res.rowCount > 0) {
+      return res.rows[0].id;
+    }
+    return null;
   }
 };

@@ -151,6 +151,18 @@ export const api = createApi({
       }),
       invalidatesTags: ['Milestone', 'Project'],
     }),
+    updateMilestone: builder.mutation({
+      query: ({ projectId, milestoneId, ...milestoneData }) => ({
+        url: `/api/projects/milestones/${milestoneId}/`,
+        method: 'PATCH',
+        body: milestoneData,
+      }),
+      invalidatesTags: (result, error, { milestoneId }) => [
+        { type: 'Milestone', id: milestoneId },
+        'Milestone',
+        'Project',
+      ],
+    }),
     approveMilestone: builder.mutation({
       query: ({ id, ...approvalData }) => ({
         url: `/api/projects/milestones/${id}/approve/`,

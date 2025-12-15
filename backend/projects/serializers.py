@@ -15,7 +15,7 @@ class MilestoneSerializer(serializers.ModelSerializer):
         model = Milestone
         fields = (
             'id', 'project', 'title', 'description', 'target_amount',
-            'order_index', 'status', 'due_date', 'is_activated', 'created_at',
+            'order_index', 'status', 'due_date', 'is_activated', 'onchain_milestone_id', 'created_at',
             'approve_votes_count', 'reject_votes_count'
         )
         read_only_fields = ('id', 'created_at', 'status', 'is_activated')
@@ -38,6 +38,8 @@ class ProjectSerializer(serializers.ModelSerializer):
     updates = UpdateSerializer(many=True, read_only=True)
     total_pledged = serializers.ReadOnlyField()
     progress_percentage = serializers.ReadOnlyField()
+    backers_count = serializers.SerializerMethodField()
+    days_remaining = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -46,9 +48,22 @@ class ProjectSerializer(serializers.ModelSerializer):
             'status', 'start_date', 'end_date', 'created_at', 'updated_at',
             'milestones', 'updates', 'total_pledged', 'progress_percentage',
             'escrow_address', 'onchain_project_id', 'created_tx_hash',
-            'deployment_wallet_type', 'chain_id'
+            'deployment_wallet_type', 'chain_id', 'backers_count', 'days_remaining'
         )
         read_only_fields = ('id', 'created_at', 'updated_at', 'status')
+
+    def get_backers_count(self, obj):
+        return obj.pledges.filter(status='active').values('backer').distinct().count()
+
+    def get_days_remaining(self, obj):
+        from django.utils import timezone
+        if not obj.end_date:
+            return 0
+        now = timezone.now()
+        if obj.end_date < now:
+            return 0
+        delta = obj.end_date - now
+        return delta.days
 
 
 class ProjectListSerializer(serializers.ModelSerializer):

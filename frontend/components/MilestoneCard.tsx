@@ -11,7 +11,7 @@ import {
   useActivateMilestoneMutation,
   usePledgeMilestoneMutation,
 } from '@/lib/api'
-import { pledgeToProject } from '@/lib/web3'
+import { pledgeToProject, activateMilestone as activateMilestoneOnChain } from '@/lib/web3'
 import { useConfirm } from '@/hooks/useConfirm'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ui/Toast'
@@ -19,6 +19,8 @@ import { toast } from '@/components/ui/Toast'
 interface MilestoneCardProps {
   milestone: Milestone
   projectId: string | number
+  project?: any  // Add project data for on-chain operations
+  fundedAmount?: number
   onUpdate: () => void
 }
 
@@ -94,7 +96,7 @@ const ActivateIcon = () => (
   </svg>
 )
 
-export default function MilestoneCard({ milestone, projectId, onUpdate }: MilestoneCardProps) {
+export default function MilestoneCard({ milestone, projectId, project, fundedAmount, onUpdate }: MilestoneCardProps) {
   const { confirm, ConfirmComponent } = useConfirm()
   const { user } = useAuth()
   const [hasVoted, setHasVoted] = useState(false)
@@ -153,11 +155,43 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
         toast.error('Milestone ID not found')
         return
       }
+
+      // Check if milestone has onchain_milestone_id
+      const onchainMilestoneId = (milestone as any).onchain_milestone_id
+      if (!onchainMilestoneId) {
+        toast.error('Milestone not created on blockchain. Please recreate the milestone.')
+        return
+      }
+
+      // Check if user has a linked wallet
+      if (!user?.wallet_type) {
+        toast.error('Please link a wallet in your profile first')
+        return
+      }
+
+      // Check if project is deployed on-chain
+      const projectOnChainId = project?.onchain_project_id
+      if (!projectOnChainId) {
+        toast.error('Project not deployed on blockchain')
+        return
+      }
+
+      // 1. Activate in backend first
       await activateMilestone({ projectId: String(projectId), milestoneId }).unwrap()
+
+      // 2. Activate on blockchain
+      toast.pending('Activating milestone on blockchain...')
+      await activateMilestoneOnChain(
+        projectOnChainId,
+        onchainMilestoneId,
+        user.wallet_type as 'metamask' | 'local',
+        project?.escrow_address
+      )
+
       onUpdate()
-      toast.success('Milestone activated!')
+      toast.success('Milestone activated on blockchain!')
     } catch (error: any) {
-      const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to activate milestone'
+      const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || error?.message || 'Failed to activate milestone'
       toast.error(errorMessage)
     }
   }
@@ -341,29 +375,30 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
             )}
           </div>
 
-          {/* Percentage and Progress */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                Funding Progress
-              </span>
-              <span className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
-                {Math.min(milestone.progress || 0, 100).toFixed(1)}%
-              </span>
+          {fundedAmount !== undefined && (
+            <div className="mb-4">
+              <div className="flex justify-between text-sm mb-1">
+                <span style={{ color: 'var(--color-text)' }}>Funding Progress</span>
+                <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
+                  {((fundedAmount / parseFloat(milestone.target_amount || milestone.required_amount || '1')) * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-warm-beige)', opacity: 0.3 }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min((fundedAmount / parseFloat(milestone.target_amount || milestone.required_amount || '1')) * 100, 100)}%`,
+                    backgroundColor: 'var(--color-primary)'
+                  }}
+                />
+              </div>
+              <div className="text-xs mt-1 text-right" style={{ color: 'var(--color-text)', opacity: 0.7 }}>
+                {fundedAmount.toLocaleString()} / {parseFloat(milestone.target_amount || milestone.required_amount || '0').toLocaleString()}
+              </div>
             </div>
-            <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-warm-beige)', opacity: 0.3 }}>
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${Math.min(milestone.progress || 0, 100)}%`,
-                  backgroundColor: 'var(--color-primary)'
-                }}
-              />
-            </div>
-            <div className="text-xs mt-1 text-right" style={{ color: 'var(--color-text)', opacity: 0.6 }}>
-              Funded: {milestone.funded_amount} / {milestone.required_amount}
-            </div>
-          </div>
+          )}
+
+
 
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-3 mb-4">

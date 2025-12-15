@@ -9,7 +9,9 @@ import {
   useGetUpdatesQuery,
   useCreateUpdateMutation,
   useCreateMilestoneMutation,
+  useUpdateMilestoneMutation,
 } from '@/lib/api'
+import { submitMilestone } from '@/lib/web3'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ui/Toast'
 import MilestoneCard from './MilestoneCard'
@@ -38,6 +40,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
   const [createPledge, { isLoading: isPledging }] = useCreatePledgeMutation()
   const [createUpdate, { isLoading: isCreatingUpdate }] = useCreateUpdateMutation()
   const [createMilestone, { isLoading: isCreatingMilestone }] = useCreateMilestoneMutation()
+  const [updateMilestone] = useUpdateMilestoneMutation()
 
   // Check if current user is the creator
   // Since we're using wallet addresses now, we need to check against creator_address
@@ -69,7 +72,8 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
       // Calculate order index based on current milestones count
       const nextOrderIndex = milestones.length + 1
 
-      await createMilestone({
+      // 1. Create milestone in backend
+      const milestone = await createMilestone({
         projectId,
         title,
         description,
@@ -77,11 +81,49 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
         order_index: nextOrderIndex,
         due_date: dueDate || null,
       }).unwrap()
+
+      // 2. Check if project is deployed on-chain
+      const projectOnChainId = (project as any).onchain_project_id
+      if (!projectOnChainId) {
+        toast.warning('Milestone created in backend only. Deploy project on-chain first to enable pledging.')
+        setShowMilestoneForm(false)
+        refetchMilestones()
+        return
+      }
+
+      // 3. Check if user has a linked wallet
+      if (!user?.wallet_type) {
+        toast.warning('Milestone created in backend. Link a wallet to submit it on-chain.')
+        setShowMilestoneForm(false)
+        refetchMilestones()
+        return
+      }
+
+      // 4. Submit milestone on blockchain
+      const result = await submitMilestone(
+        projectOnChainId,
+        title,
+        amount.toString(),
+        user.wallet_type as 'metamask' | 'local',
+        (project as any).escrow_address
+      )
+
+      // 5. Update backend with onchain_milestone_id
+      if (result.onchainMilestoneId === undefined) {
+        throw new Error('Failed to extract milestone ID from blockchain transaction')
+      }
+
+      await updateMilestone({
+        projectId,
+        milestoneId: (milestone as any).id,
+        onchain_milestone_id: result.onchainMilestoneId,
+      }).unwrap()
+
       setShowMilestoneForm(false)
       refetchMilestones()
-      toast.success('Milestone created successfully!')
+      toast.success('Milestone created on blockchain!')
     } catch (error: any) {
-      const errorMessage = error?.data?.detail || error?.data?.error || 'Failed to create milestone'
+      const errorMessage = error?.data?.detail || error?.data?.error || error?.message || 'Failed to create milestone'
       toast.error(errorMessage)
     }
   }
@@ -91,8 +133,17 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
   const goalAmount = parseFloat(project.goal_amount || '0')
 
   // Calculate remaining amount for milestones
-  const totalMilestoneAmount = milestones.reduce((sum: number, m: any) => sum + parseFloat(m.required_amount || '0'), 0)
+  const totalMilestoneAmount = milestones.reduce((sum: number, m: any) => sum + parseFloat(m.target_amount || '0'), 0)
   const remainingAmount = goalAmount - totalMilestoneAmount
+
+  // Calculate sequential funding progress
+  let remainingPledge = totalPledged
+  const milestonesWithFunding = milestones.map((m: any) => {
+    const target = parseFloat(m.target_amount)
+    const funded = Math.min(remainingPledge, target)
+    remainingPledge = Math.max(0, remainingPledge - funded)
+    return { ...m, funded_amount: funded }
+  })
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -172,11 +223,13 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
                 Activated Milestones
               </h2>
               <div className="space-y-4">
-                {milestones.filter((m: any) => m.is_activated).map((milestone: any) => (
+                {milestonesWithFunding.filter((m: any) => m.is_activated).map((milestone: any) => (
                   <MilestoneCard
                     key={milestone.milestone_id}
                     milestone={milestone}
                     projectId={projectId}
+                    project={project}
+                    fundedAmount={milestone.funded_amount}
                     onUpdate={refetchMilestones}
                   />
                 ))}
@@ -212,14 +265,16 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
               <p style={{ color: 'var(--text)', opacity: 0.7 }}>No milestones defined yet.</p>
             ) : (
               <div className="space-y-4">
-                {milestones.filter((m: any) => !m.is_activated).length === 0 && milestones.length > 0 ? (
+                {milestonesWithFunding.filter((m: any) => !m.is_activated).length === 0 && milestones.length > 0 ? (
                   <p style={{ color: 'var(--text)', opacity: 0.7 }}>All milestones are activated.</p>
                 ) : (
-                  milestones.filter((m: any) => !m.is_activated).map((milestone: any) => (
+                  milestonesWithFunding.filter((m: any) => !m.is_activated).map((milestone: any) => (
                     <MilestoneCard
                       key={milestone.milestone_id}
                       milestone={milestone}
                       projectId={projectId}
+                      project={project}
+                      fundedAmount={milestone.funded_amount}
                       onUpdate={refetchMilestones}
                     />
                   ))
@@ -263,22 +318,37 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
         <div className="lg:col-span-1">
           <div className="card mb-6">
             <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text)' }}>Statistics</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
                 <span style={{ color: 'var(--text)', opacity: 0.7 }}>Total Pledged</span>
-                <span className="font-semibold" style={{ color: 'var(--text)' }}>
+                <span className="font-semibold text-lg" style={{ color: 'var(--text)' }}>
                   {project.currency} {totalPledged.toLocaleString()}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span style={{ color: 'var(--text)', opacity: 0.7 }}>Goal</span>
-                <span className="font-semibold" style={{ color: 'var(--text)' }}>
-                  {project.currency} {goalAmount.toLocaleString()}
-                </span>
+              <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
+                <div
+                  className="h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: 'var(--primary)' }}
+                />
               </div>
-              <div className="flex justify-between">
-                <span style={{ color: 'var(--text)', opacity: 0.7 }}>Progress</span>
-                <span className="font-semibold" style={{ color: 'var(--text)' }}>{progress.toFixed(1)}%</span>
+              <div className="flex justify-between text-sm">
+                <span style={{ color: 'var(--text)', opacity: 0.7 }}>{progress.toFixed(1)}% funded</span>
+                <span style={{ color: 'var(--text)', opacity: 0.7 }}>Goal: {project.currency} {goalAmount.toLocaleString()}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+                <div>
+                  <div className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
+                    {(project as any).backers_count || 0}
+                  </div>
+                  <div className="text-sm" style={{ color: 'var(--text)', opacity: 0.7 }}>Backers</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
+                    {(project as any).days_remaining || 0}
+                  </div>
+                  <div className="text-sm" style={{ color: 'var(--text)', opacity: 0.7 }}>Days Left</div>
+                </div>
               </div>
             </div>
           </div>

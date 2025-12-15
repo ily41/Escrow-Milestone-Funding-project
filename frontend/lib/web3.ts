@@ -39,6 +39,47 @@ const PROJECT_ESCROW_ABI = [
         "type": "function"
     },
     {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amountWei",
+                "type": "uint256"
+            }
+        ],
+        "name": "submitMilestone",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            }
+        ],
+        "name": "activateMilestone",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
         "anonymous": false,
         "inputs": [
             {
@@ -92,6 +133,56 @@ const PROJECT_ESCROW_ABI = [
             }
         ],
         "name": "ProjectCreated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "MilestoneSubmitted",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            }
+        ],
+        "name": "MilestoneActivated",
         "type": "event"
     }
 ];
@@ -210,5 +301,98 @@ export const deployProject = async (
         onchainProjectId,
         chainId,
         contractAddress: address
+    };
+};
+
+export const submitMilestone = async (
+    onChainProjectId: number,
+    title: string,
+    amountEth: string,
+    walletType: 'metamask' | 'local',
+    contractAddress?: string
+) => {
+    const address = contractAddress || LOCAL_PROJECT_ESCROW_ADDRESS;
+
+    let signer;
+
+    if (walletType === 'local') {
+        const result = await connectLocalWallet();
+        signer = result.signer;
+    } else {
+        const result = await connectWallet();
+        signer = result.signer;
+    }
+
+    const contract = new ethers.Contract(address, PROJECT_ESCROW_ABI, signer);
+    const amountWei = ethers.parseEther(amountEth);
+
+    console.log('Submitting milestone on-chain:', { onChainProjectId, title, amountWei: amountWei.toString() });
+
+    const tx = await contract.submitMilestone(onChainProjectId, title, amountWei);
+    console.log('Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed. Logs:', receipt.logs.length);
+
+    // Extract milestone ID from event logs
+    let onchainMilestoneId: number | undefined;
+    for (const log of receipt.logs) {
+        try {
+            const parsed = contract.interface.parseLog({
+                topics: log.topics as string[],
+                data: log.data
+            });
+            console.log('Parsed log:', parsed?.name, parsed?.args);
+            if (parsed?.name === 'MilestoneSubmitted') {
+                onchainMilestoneId = Number(parsed.args.milestoneId);
+                console.log('Extracted onchainMilestoneId:', onchainMilestoneId);
+                break;
+            }
+        } catch (e) {
+            // Not a matching log, skip
+        }
+    }
+
+    if (onchainMilestoneId === undefined) {
+        console.warn('Could not extract milestoneId from logs');
+    }
+
+    return {
+        txHash: receipt.hash,
+        onchainMilestoneId,
+        contractAddress: address
+    };
+};
+
+export const activateMilestone = async (
+    onChainProjectId: number,
+    onChainMilestoneId: number,
+    walletType: 'metamask' | 'local',
+    contractAddress?: string
+) => {
+    const address = contractAddress || LOCAL_PROJECT_ESCROW_ADDRESS;
+
+    let signer;
+
+    if (walletType === 'local') {
+        const result = await connectLocalWallet();
+        signer = result.signer;
+    } else {
+        const result = await connectWallet();
+        signer = result.signer;
+    }
+
+    const contract = new ethers.Contract(address, PROJECT_ESCROW_ABI, signer);
+
+    console.log('Activating milestone on-chain:', { onChainProjectId, onChainMilestoneId });
+
+    const tx = await contract.activateMilestone(onChainProjectId, onChainMilestoneId);
+    console.log('Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Milestone activated. TxHash:', receipt.hash);
+
+    return {
+        txHash: receipt.hash
     };
 };

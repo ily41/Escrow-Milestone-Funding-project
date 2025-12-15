@@ -77,6 +77,7 @@ class Milestone(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     due_date = models.DateTimeField(null=True, blank=True)
     is_activated = models.BooleanField(default=False)
+    onchain_milestone_id = models.PositiveIntegerField(null=True, blank=True, help_text='ID of milestone on blockchain')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
