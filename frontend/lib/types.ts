@@ -9,6 +9,8 @@ export interface User {
   is_creator: boolean
   is_backer: boolean
   is_admin: boolean
+  wallet_address?: string | null
+  wallet_type?: 'metamask' | 'local' | null
   created_at: string
 }
 
@@ -34,6 +36,8 @@ export interface Project {
   milestones?: Milestone[]
   escrow_address?: string
   onchain_project_id?: number
+  deployment_wallet_type?: 'metamask' | 'local' | null
+  chain_id?: string | null
   milestones_count?: number  // For list views
   // Computed fields for frontend
   goal_amount?: string  // Alias for funding_goal

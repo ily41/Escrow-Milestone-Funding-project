@@ -211,6 +211,76 @@ class MilestoneViewSet(viewsets.ModelViewSet):
         return queryset
 
     @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        """Activate a milestone."""
+        milestone = self.get_object()
+        if milestone.project.creator.user != request.user:
+            return Response(
+                {'error': 'Only the creator can activate this milestone'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        if milestone.is_activated:
+             return Response(
+                {'error': 'Milestone is already activated'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if any other milestone is already activated
+        if Milestone.objects.filter(project=milestone.project, is_activated=True).exists():
+             return Response(
+                {'error': 'Another milestone is already active. Only one milestone can be active at a time.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        milestone.is_activated = True
+        milestone.save()
+        return Response({'status': 'Milestone activated'})
+
+    def destroy(self, request, *args, **kwargs):
+        milestone = self.get_object()
+        if milestone.is_activated:
+            return Response(
+                {'error': 'Cannot delete an activated milestone'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'])
+    def pledge(self, request, pk=None):
+        """
+        Initiate a pledge for the project associated with this milestone.
+        Returns parameters for the frontend to execute the transaction on-chain.
+        """
+        milestone = self.get_object()
+        project = milestone.project
+        
+        if project.status != 'active':
+             return Response(
+                {'error': 'Project is not active'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        if not project.onchain_project_id:
+             return Response(
+                {'error': 'Project is not deployed on-chain'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        amount = request.data.get('amount')
+        if not amount:
+             return Response(
+                {'error': 'Amount is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        return Response({
+            'onchain_project_id': project.onchain_project_id,
+            'escrow_address': project.escrow_address, # Or global contract address if not per-project logic
+            'amount': amount,
+            'project_title': project.title
+        })
+
+    @action(detail=True, methods=['post'])
     def open_voting(self, request, pk=None):
         """Open voting for a milestone."""
         milestone = self.get_object()

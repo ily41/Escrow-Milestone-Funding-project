@@ -8,12 +8,14 @@ import {
   useCreateProjectMutation,
   useActivateProjectMutation,
   useDeactivateProjectMutation,
+  useUpdateProjectMutation,
 } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ui/Toast'
 import CustomSelect from '@/components/CustomSelect'
 import { useConfirm } from '@/hooks/useConfirm'
 import AuthGuard from '@/components/AuthGuard'
+import { deployProject } from '@/lib/web3'
 
 export default function CreatorDashboard() {
   const router = useRouter()
@@ -34,6 +36,7 @@ export default function CreatorDashboard() {
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation()
   const [activateProject] = useActivateProjectMutation()
   const [deactivateProject] = useDeactivateProjectMutation()
+  const [updateProject] = useUpdateProjectMutation()
 
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [formData, setFormData] = useState({
@@ -44,6 +47,8 @@ export default function CreatorDashboard() {
     start_date: '',
     end_date: '',
   })
+
+  const [deployingProjectId, setDeployingProjectId] = useState<number | null>(null)
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,12 +80,6 @@ export default function CreatorDashboard() {
   }
 
   const handleActivate = async (projectId: number) => {
-    // Determine the type of confirmation based on what `confirm` expects
-    // Assuming `confirm` takes a string or an object, simplifying to string for safety if unsure,
-    // or matching the object structure used in `handleDeactivate` if consistent.
-    // Based on previous code, `confirm` returned from `useConfirm` might take specific props.
-    // Let's use the object form seen in `handleDeactivate` for consistency and safety.
-
     const isConfirmed = await confirm({
       title: 'Activate Project',
       message: 'Are you sure you want to activate this project? It will become visible to backers.',
@@ -118,6 +117,53 @@ export default function CreatorDashboard() {
     } catch (error: any) {
       const errorMessage = error?.data?.error || error?.data?.message || error?.error || 'Failed to deactivate project'
       toast.error(errorMessage)
+    }
+  }
+
+  const handleDeploy = async (project: any, walletType: 'metamask' | 'local') => {
+    setDeployingProjectId(project.id)
+    try {
+      // Convert goal to ETH (assuming backend stores in USD, we use goal_amount as ETH for demo)
+      const goalEth = project.goal_amount?.toString() || '1'
+      // Use end_date as deadline
+      const deadline = Math.floor(new Date(project.end_date).getTime() / 1000)
+
+      console.log('Deploying project:', project.id, 'Goal:', goalEth, 'Deadline:', deadline)
+      const result = await deployProject(goalEth, deadline, walletType)
+      console.log('Deploy result:', result)
+
+      if (result.onchainProjectId === undefined) {
+        throw new Error('Failed to get on-chain project ID from transaction')
+      }
+
+      // Update project in backend with on-chain data
+      console.log('Updating backend with:', {
+        id: project.id,
+        onchain_project_id: result.onchainProjectId,
+        created_tx_hash: result.txHash,
+        escrow_address: result.contractAddress,
+        deployment_wallet_type: walletType,
+        chain_id: result.chainId,
+      })
+
+      const updateResult = await updateProject({
+        id: project.id,
+        onchain_project_id: result.onchainProjectId,
+        created_tx_hash: result.txHash,
+        escrow_address: result.contractAddress,
+        deployment_wallet_type: walletType,
+        chain_id: result.chainId,
+      }).unwrap()
+
+      console.log('Backend update result:', updateResult)
+
+      refetch()
+      toast.success(`Project deployed on-chain via ${walletType === 'metamask' ? 'MetaMask' : 'Local Wallet'}!`)
+    } catch (error: any) {
+      console.error('Deployment failed:', error)
+      toast.error(error.message || 'Failed to deploy project')
+    } finally {
+      setDeployingProjectId(null)
     }
   }
 
@@ -181,7 +227,7 @@ export default function CreatorDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>Goal Amount</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>Goal Amount (ETH)</label>
                   <input
                     type="number"
                     id="project-goal"
@@ -260,6 +306,42 @@ export default function CreatorDashboard() {
                         <span>Status: <span className="font-semibold capitalize">{project.status}</span></span>
                         <span>Goal: {project.currency || 'USD'} {parseFloat(project.goal_amount || project.funding_goal || '0').toLocaleString()}</span>
                         <span>Pledged: {project.currency || 'USD'} {parseFloat(project.total_pledged || project.current_funding || '0').toLocaleString()}</span>
+                      </div>
+
+                      {/* On-chain Deployment Status */}
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>On-Chain:</span>
+                          {project.onchain_project_id ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                              <span className="text-sm text-green-600">Deployed (ID: {project.onchain_project_id})</span>
+                              <span className="text-xs opacity-60">
+                                via {project.deployment_wallet_type === 'metamask' ? 'MetaMask' : 'Local'}
+                                {project.chain_id && ` (Chain: ${project.chain_id})`}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                              <span className="text-sm text-amber-600">Not Deployed</span>
+                              <button
+                                onClick={() => handleDeploy(project, 'local')}
+                                disabled={deployingProjectId === project.id}
+                                className="ml-2 px-3 py-1 text-xs rounded-lg border border-primary text-primary hover:bg-primary/10 transition-colors"
+                              >
+                                {deployingProjectId === project.id ? 'Deploying...' : 'Deploy Local'}
+                              </button>
+                              <button
+                                onClick={() => handleDeploy(project, 'metamask')}
+                                disabled={deployingProjectId === project.id}
+                                className="px-3 py-1 text-xs rounded-lg border border-orange-500 text-orange-600 hover:bg-orange-500/10 transition-colors"
+                              >
+                                {deployingProjectId === project.id ? 'Deploying...' : 'Deploy MetaMask'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">

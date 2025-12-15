@@ -152,7 +152,7 @@ export default function HomePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {myProjects.slice(0, 3).map((project: any, idx) => (
-                <div key={project.project_id} data-aos="fade-up" data-aos-delay={idx * 100}>
+                <div key={project.project_id || project.id} data-aos="fade-up" data-aos-delay={idx * 100}>
                   <ProjectCard project={project} />
                 </div>
               ))}
@@ -190,7 +190,7 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {activeProjects.slice(0, 6).map((project: any, idx) => (
-                <div key={project.project_id} data-aos="fade-up" data-aos-delay={idx * 100}>
+                <div key={project.project_id || project.id} data-aos="fade-up" data-aos-delay={idx * 100}>
                   <ProjectCard project={project} />
                 </div>
               ))}
@@ -220,7 +220,7 @@ export default function HomePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {fundedProjects.slice(0, 3).map((project: any, idx) => (
-                <div key={project.project_id} data-aos="fade-up" data-aos-delay={idx * 100}>
+                <div key={project.project_id || project.id} data-aos="fade-up" data-aos-delay={idx * 100}>
                   <ProjectCard project={project} />
                 </div>
               ))}

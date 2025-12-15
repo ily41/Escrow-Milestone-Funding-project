@@ -46,6 +46,14 @@ export const api = createApi({
       query: () => '/api/users/creators/',
       providesTags: ['User'],
     }),
+    updateUser: builder.mutation({
+      query: (userData) => ({
+        url: '/api/users/me/',
+        method: 'PATCH',
+        body: userData,
+      }),
+      invalidatesTags: ['User'],
+    }),
 
     // Project endpoints
     getProjects: builder.query({
@@ -85,6 +93,14 @@ export const api = createApi({
       }),
       invalidatesTags: (result, error, id) => [{ type: 'Project', id }, 'Project'],
     }),
+    updateProject: builder.mutation({
+      query: ({ id, ...projectData }) => ({
+        url: `/api/projects/${id}/`,
+        method: 'PATCH',
+        body: projectData,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: 'Project', id }, 'Project'],
+    }),
 
     // Milestone endpoints
     getMilestones: builder.query({
@@ -115,14 +131,22 @@ export const api = createApi({
     }),
     deleteMilestone: builder.mutation({
       query: ({ projectId, milestoneId }) => ({
-        url: `/api/projects/${projectId}/milestones/${milestoneId}/delete/`,
+        url: `/api/projects/milestones/${milestoneId}/`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Milestone', 'Project'],
     }),
+    pledgeMilestone: builder.mutation({
+      query: ({ milestoneId, amount }) => ({
+        url: `/api/projects/milestones/${milestoneId}/pledge/`,
+        method: 'POST',
+        body: { amount },
+      }),
+      invalidatesTags: ['Milestone', 'Pledge'],
+    }),
     activateMilestone: builder.mutation({
       query: ({ projectId, milestoneId }) => ({
-        url: `/api/projects/${projectId}/milestones/${milestoneId}/activate/`,
+        url: `/api/projects/milestones/${milestoneId}/activate/`,
         method: 'POST',
       }),
       invalidatesTags: ['Milestone', 'Project'],
@@ -215,12 +239,14 @@ export const {
   useRegisterMutation,
   useGetCurrentUserQuery,
   useGetCreatorProfileQuery,
+  useUpdateUserMutation,
   useGetProjectsQuery,
   useGetMyProjectsQuery,
   useGetProjectQuery,
   useCreateProjectMutation,
   useActivateProjectMutation,
   useDeactivateProjectMutation,
+  useUpdateProjectMutation,
   useGetMilestonesQuery,
   useCreateMilestoneMutation,
   useUpdateMilestoneMutation,
@@ -236,4 +262,5 @@ export const {
   useReleaseFundsMutation,
   useGetUpdatesQuery,
   useCreateUpdateMutation,
+  usePledgeMilestoneMutation,
 } = api

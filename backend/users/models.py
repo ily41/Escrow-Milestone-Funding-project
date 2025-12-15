@@ -11,6 +11,12 @@ class User(AbstractUser):
     is_creator = models.BooleanField(default=False)
     is_backer = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
+    wallet_address = models.CharField(max_length=42, blank=True, null=True)
+    WALLET_TYPE_CHOICES = [
+        ('metamask', 'MetaMask'),
+        ('local', 'Local Wallet'),
+    ]
+    wallet_type = models.CharField(max_length=20, choices=WALLET_TYPE_CHOICES, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

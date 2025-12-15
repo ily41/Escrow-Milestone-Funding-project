@@ -24,6 +24,15 @@ class Project(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
+    escrow_address = models.CharField(max_length=42, blank=True, null=True)
+    onchain_project_id = models.PositiveIntegerField(unique=True, null=True, blank=True)
+    created_tx_hash = models.CharField(max_length=66, blank=True, null=True)
+    DEPLOYMENT_WALLET_TYPE_CHOICES = [
+        ('metamask', 'MetaMask'),
+        ('local', 'Local Wallet'),
+    ]
+    deployment_wallet_type = models.CharField(max_length=20, choices=DEPLOYMENT_WALLET_TYPE_CHOICES, blank=True, null=True)
+    chain_id = models.CharField(max_length=20, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -67,6 +76,7 @@ class Milestone(models.Model):
     order_index = models.PositiveIntegerField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     due_date = models.DateTimeField(null=True, blank=True)
+    is_activated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

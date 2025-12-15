@@ -47,9 +47,16 @@ class UserViewSet(viewsets.ModelViewSet):
         description="Retrieve information about the currently authenticated user.",
         responses={200: UserSerializer},
     )
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get', 'put', 'patch'])
     def me(self, request):
-        """Get current user information."""
+        """Get or update current user information."""
+        if request.method in ['PUT', 'PATCH']:
+            serializer = self.get_serializer(request.user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 

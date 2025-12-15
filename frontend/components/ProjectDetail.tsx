@@ -27,8 +27,13 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
   const [showUpdateForm, setShowUpdateForm] = useState(false)
   const [showMilestoneForm, setShowMilestoneForm] = useState(false)
 
-  const { data: milestones = [], refetch: refetchMilestones } = useGetMilestonesQuery({ project_id: project.project_id })
-  const { data: updates = [], refetch: refetchUpdates } = useGetUpdatesQuery({ project_id: project.project_id })
+  // Handle both project_id (frontend type) and id (backend response)
+  const projectId = project.project_id || (project as any).id
+
+  const { data: milestonesData = [], refetch: refetchMilestones } = useGetMilestonesQuery({ project_id: projectId })
+  const milestones = Array.isArray(milestonesData) ? milestonesData : (milestonesData as any).results || []
+
+  const { data: updates = [], refetch: refetchUpdates } = useGetUpdatesQuery({ project_id: projectId })
 
   const [createPledge, { isLoading: isPledging }] = useCreatePledgeMutation()
   const [createUpdate, { isLoading: isCreatingUpdate }] = useCreateUpdateMutation()
@@ -40,7 +45,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
 
   const handlePledge = async (amount: number) => {
     try {
-      await createPledge({ projectId: project.project_id, amount }).unwrap()
+      await createPledge({ projectId, amount }).unwrap()
       setShowPledgeForm(false)
       toast.success('Pledge created successfully!')
     } catch (error: any) {
@@ -50,7 +55,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
 
   const handleCreateUpdate = async (title: string, content: string) => {
     try {
-      await createUpdate({ projectId: project.project_id, title, content }).unwrap()
+      await createUpdate({ projectId, title, content }).unwrap()
       setShowUpdateForm(false)
       refetchUpdates()
       toast.success('Update created successfully!')
@@ -59,13 +64,18 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
     }
   }
 
-  const handleCreateMilestone = async (title: string, description: string, amount: number) => {
+  const handleCreateMilestone = async (title: string, description: string, amount: number, dueDate: string) => {
     try {
+      // Calculate order index based on current milestones count
+      const nextOrderIndex = milestones.length + 1
+
       await createMilestone({
-        projectId: project.project_id,
+        projectId,
         title,
         description,
-        required_amount: amount,
+        target_amount: amount,
+        order_index: nextOrderIndex,
+        due_date: dueDate || null,
       }).unwrap()
       setShowMilestoneForm(false)
       refetchMilestones()
@@ -166,7 +176,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
                   <MilestoneCard
                     key={milestone.milestone_id}
                     milestone={milestone}
-                    projectId={project.project_id}
+                    projectId={projectId}
                     onUpdate={refetchMilestones}
                   />
                 ))}
@@ -209,7 +219,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
                     <MilestoneCard
                       key={milestone.milestone_id}
                       milestone={milestone}
-                      projectId={project.project_id}
+                      projectId={projectId}
                       onUpdate={refetchMilestones}
                     />
                   ))
@@ -251,7 +261,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
         </div>
 
         <div className="lg:col-span-1">
-          <div className="card">
+          <div className="card mb-6">
             <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text)' }}>Statistics</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
@@ -271,6 +281,58 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
                 <span className="font-semibold" style={{ color: 'var(--text)' }}>{progress.toFixed(1)}%</span>
               </div>
             </div>
+          </div>
+
+          {/* On-Chain Deployment Details */}
+          <div className="card">
+            <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text)' }}>On-Chain Deployment</h3>
+            {(project as any).onchain_project_id ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-green-600 font-semibold">Deployed</span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--text)', opacity: 0.7 }}>On-Chain ID</span>
+                  <span className="font-mono font-semibold" style={{ color: 'var(--text)' }}>
+                    {(project as any).onchain_project_id}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--text)', opacity: 0.7 }}>Wallet Type</span>
+                  <span className="font-semibold capitalize" style={{ color: 'var(--text)' }}>
+                    {(project as any).deployment_wallet_type === 'metamask' ? 'MetaMask' : 'Local Wallet'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--text)', opacity: 0.7 }}>Chain ID</span>
+                  <span className="font-mono" style={{ color: 'var(--text)' }}>
+                    {(project as any).chain_id || 'N/A'}
+                  </span>
+                </div>
+                {(project as any).escrow_address && (
+                  <div>
+                    <span className="text-xs" style={{ color: 'var(--text)', opacity: 0.7 }}>Contract Address</span>
+                    <div className="text-xs font-mono break-all mt-1" style={{ color: 'var(--text)' }}>
+                      {(project as any).escrow_address}
+                    </div>
+                  </div>
+                )}
+                {(project as any).created_tx_hash && (
+                  <div>
+                    <span className="text-xs" style={{ color: 'var(--text)', opacity: 0.7 }}>Transaction Hash</span>
+                    <div className="text-xs font-mono break-all mt-1" style={{ color: 'var(--text)' }}>
+                      {(project as any).created_tx_hash}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                <span className="text-amber-600">Not Deployed</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

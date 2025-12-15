@@ -9,8 +9,11 @@ import {
   useReleaseFundsMutation,
   useDeleteMilestoneMutation,
   useActivateMilestoneMutation,
+  usePledgeMilestoneMutation,
 } from '@/lib/api'
+import { pledgeToProject } from '@/lib/web3'
 import { useConfirm } from '@/hooks/useConfirm'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ui/Toast'
 
 interface MilestoneCardProps {
@@ -93,6 +96,7 @@ const ActivateIcon = () => (
 
 export default function MilestoneCard({ milestone, projectId, onUpdate }: MilestoneCardProps) {
   const { confirm, ConfirmComponent } = useConfirm()
+  const { user } = useAuth()
   const [hasVoted, setHasVoted] = useState(false)
 
   const [openVoting, { isLoading: isOpeningVoting }] = useOpenVotingMutation()
@@ -100,6 +104,47 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
   const [releaseFunds, { isLoading: isReleasing }] = useReleaseFundsMutation()
   const [deleteMilestone, { isLoading: isDeleting }] = useDeleteMilestoneMutation()
   const [activateMilestone, { isLoading: isActivating }] = useActivateMilestoneMutation()
+  const [pledgeMilestone, { isLoading: isPledging }] = usePledgeMilestoneMutation()
+
+  const handlePledge = async () => {
+    const amount = window.prompt('Enter amount to pledge (ETH):')
+    if (!amount || isNaN(Number(amount))) return
+
+    try {
+      const milestoneId = (milestone as any).id || milestone.milestone_id
+      if (!milestoneId) {
+        toast.error('Milestone ID not found')
+        return
+      }
+
+      // Check if user has a linked wallet
+      if (!user?.wallet_type) {
+        toast.error('Please link a wallet in your profile first')
+        return
+      }
+
+      // 1. Get contract details from backend
+      const { onchain_project_id, escrow_address } = await pledgeMilestone({
+        milestoneId,
+        amount: Number(amount)
+      }).unwrap()
+
+      // 2. Execute on-chain transaction using user's linked wallet type
+      toast.pending('Waiting for wallet confirmation...')
+      await pledgeToProject(
+        escrow_address,
+        onchain_project_id,
+        String(amount),
+        user.wallet_type as 'metamask' | 'local'
+      )
+
+      toast.success('Pledge confirmed on blockchain!')
+      onUpdate()
+    } catch (error: any) {
+      const errorMessage = error?.data?.detail || error?.data?.error || error?.message || 'Pledge failed'
+      toast.error(errorMessage)
+    }
+  }
 
   const handleActivate = async () => {
     try {
@@ -157,6 +202,7 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
       confirmText: 'Release',
       cancelText: 'Cancel',
       type: 'danger',
+
     })
     if (!confirmed) return
 
@@ -250,7 +296,7 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
 
   const statusConfig = getStatusConfig(milestone.status)
   const StatusIcon = statusConfig.Icon
-  const loading = isOpeningVoting || isVoting || isReleasing || isDeleting || isActivating
+  const loading = isOpeningVoting || isVoting || isReleasing || isDeleting || isActivating || isPledging
 
   // Helper to get normalized status string for logic checks
   const getNormalizedStatus = (s: string | number) => {
@@ -263,7 +309,7 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
   }
 
   const milestoneStatus = getNormalizedStatus(milestone.status)
-  const canDelete = milestoneStatus !== 'pending' && milestoneStatus !== 'voting'
+  const canDelete = milestoneStatus === 'pending'
   const isActivated = milestone.is_activated
 
   return (
@@ -392,6 +438,21 @@ export default function MilestoneCard({ milestone, projectId, onUpdate }: Milest
 
           {/* Action Buttons */}
           <div className="flex gap-2">
+            {isActivated && (
+              <button
+                onClick={handlePledge}
+                className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#8b5cf6', color: 'white' }}
+                disabled={loading}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 1V15M1 8H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M12 5L8 1L4 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                <span>Pledge</span>
+              </button>
+            )}
+
             {!isActivated && milestoneStatus === 'pending' && (
               <button
                 onClick={handleActivate}

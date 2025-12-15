@@ -15,10 +15,10 @@ class MilestoneSerializer(serializers.ModelSerializer):
         model = Milestone
         fields = (
             'id', 'project', 'title', 'description', 'target_amount',
-            'order_index', 'status', 'due_date', 'created_at',
+            'order_index', 'status', 'due_date', 'is_activated', 'created_at',
             'approve_votes_count', 'reject_votes_count'
         )
-        read_only_fields = ('id', 'created_at', 'status')
+        read_only_fields = ('id', 'created_at', 'status', 'is_activated')
 
 
 class UpdateSerializer(serializers.ModelSerializer):
@@ -44,7 +44,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'creator', 'title', 'description', 'goal_amount', 'currency',
             'status', 'start_date', 'end_date', 'created_at', 'updated_at',
-            'milestones', 'updates', 'total_pledged', 'progress_percentage'
+            'milestones', 'updates', 'total_pledged', 'progress_percentage',
+            'escrow_address', 'onchain_project_id', 'created_tx_hash',
+            'deployment_wallet_type', 'chain_id'
         )
         read_only_fields = ('id', 'created_at', 'updated_at', 'status')
 
