@@ -89,6 +89,11 @@ contract ProjectEscrow {
         uint256 indexed milestoneId
     );
 
+    event VotingStarted(
+        uint256 indexed projectId,
+        uint256 indexed milestoneId
+    );
+
     event VoteCast(
         uint256 indexed projectId,
         uint256 indexed milestoneId,
@@ -209,6 +214,27 @@ contract ProjectEscrow {
         emit VoteCast(projectId, milestoneId, msg.sender, approve, weight);
     }
 
+    function openVoting(
+        uint256 projectId,
+        uint256 milestoneId
+    ) external onlyCreator(projectId) {
+         (
+            ,
+            bool exists,
+            bool fundsReleased,
+            bool isActivated,
+            bool votingStarted
+        ) = IMilestones(milestonesContract).getMilestone(projectId, milestoneId);
+
+        require(exists, "No milestone");
+        require(isActivated, "Not activated");
+        require(!fundsReleased, "Already released");
+        require(!votingStarted, "Voting already started");
+
+        IMilestones(milestonesContract).startVoting(projectId, milestoneId);
+        emit VotingStarted(projectId, milestoneId);
+    }
+
     function releaseFunds(
         uint256 projectId,
         uint256 milestoneId
@@ -221,9 +247,12 @@ contract ProjectEscrow {
             bool exists,
             bool fundsReleased,
             // bool isActivated // ignored
+            ,
+            bool votingStarted
         ) = IMilestones(milestonesContract).getMilestone(projectId, milestoneId);
 
         require(exists, "No milestone");
+        require(votingStarted, "Voting not started");
         require(!fundsReleased, "Already released");
         require(address(this).balance >= amountWei, "Not enough escrow");
 
@@ -255,6 +284,48 @@ contract ProjectEscrow {
 
         // 8) Emit original event (still using full milestone amount)
         emit FundsReleased(projectId, milestoneId, amountWei, p.creator);
+    }
+
+    function refundMilestone(
+        uint256 projectId,
+        uint256 milestoneId
+    ) external onlyCreator(projectId) {
+        Project storage p = projects[projectId];
+
+         (
+            uint256 amountWei,
+            bool exists,
+            bool fundsReleased,
+            bool isActivated,
+            bool votingStarted
+        ) = IMilestones(milestonesContract).getMilestone(projectId, milestoneId);
+
+        require(exists, "No milestone");
+        require(isActivated, "Not activated");
+        require(!fundsReleased, "Already released");
+        require(votingStarted, "Voting not started");
+
+        // Check governance - must be failed
+        (uint256 yesWeight, uint256 noWeight) =
+            IGovernanceLight(governanceContract).getTally(projectId, milestoneId);
+
+        require(noWeight >= yesWeight, "Voting passed, cannot refund");
+
+        // "Refund" effectively means ensuring the funds stay in the project (they are already there)
+        // and marking the milestone as closed/failed so it can't be released.
+        // But simply "de-activating" it or marking released to 0 address might be cleaner?
+        // Let's mark it released so it can't be released again, but WITHOUT sending funds out.
+        // Wait, if we mark released, it implies funds left.
+        // Actually, funds haven't left `p.currentFunding`. They are still there.
+        // So we just need to ensure this milestone specifically is dead.
+        // `IMilestones.markReleased` sets `fundsReleased = true`.
+        // If we call that, checks prevent double release.
+        // And since we DO NOT decrement `p.currentFunding`, the funds remain in the project pool.
+        // This effectively "returns" them to the pool for future usage.
+
+        IMilestones(milestonesContract).markReleased(projectId, milestoneId);
+
+        emit RefundIssued(projectId, address(0), amountWei); // address(0) implies project pool
     }
 
 

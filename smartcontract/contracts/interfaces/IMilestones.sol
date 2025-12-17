@@ -12,6 +12,11 @@ interface IMilestones {
         uint256 milestoneId
     ) external;
 
+    function startVoting(
+        uint256 projectId,
+        uint256 milestoneId
+    ) external;
+
     function markReleased(
         uint256 projectId,
         uint256 milestoneId
@@ -20,5 +25,5 @@ interface IMilestones {
     function getMilestone(uint256 projectId, uint256 milestoneId)
         external
         view
-        returns (uint256 amountWei, bool exists, bool fundsReleased, bool isActivated);
+        returns (uint256 amountWei, bool exists, bool fundsReleased, bool isActivated, bool votingStarted);
 }

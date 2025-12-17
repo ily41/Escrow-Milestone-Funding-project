@@ -74,8 +74,8 @@
       ]
     },
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\ProjectEscrow.sol": {
-      "lastModificationDate": 1765736880727,
-      "contentHash": "dfd8e9ad87e836c47cfe6458de89cc99",
+      "lastModificationDate": 1765925944273,
+      "contentHash": "748f283bb89b05586a74c47f4329b60f",
       "sourceName": "contracts/ProjectEscrow.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -187,8 +187,8 @@
       ]
     },
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\interfaces\\IMilestones.sol": {
-      "lastModificationDate": 1765736880726,
-      "contentHash": "ddd3dbdf72366eeedb93e94241609f1c",
+      "lastModificationDate": 1765925759768,
+      "contentHash": "c79931358d627322bc92d8e3dde23310",
       "sourceName": "contracts/interfaces/IMilestones.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -223,8 +223,8 @@
       ]
     },
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\Milestones.sol": {
-      "lastModificationDate": 1765736880727,
-      "contentHash": "3085f8d4fde4b6645d717bb69ad09d50",
+      "lastModificationDate": 1765925738704,
+      "contentHash": "86393b96e584ca7960a0484a9b881ded",
       "sourceName": "contracts/Milestones.sol",
       "solcConfig": {
         "version": "0.8.20",

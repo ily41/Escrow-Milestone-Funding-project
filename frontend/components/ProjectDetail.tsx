@@ -46,6 +46,15 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
   // Since we're using wallet addresses now, we need to check against creator_address
   const isCreator = user?.is_creator === true
 
+  const getNormalizedStatus = (s: string | number) => {
+    if (s === 0 || s === '0') return 'pending'
+    if (s === 1 || s === '1') return 'voting'
+    if (s === 2 || s === '2') return 'approved'
+    if (s === 3 || s === '3') return 'rejected'
+    if (s === 4 || s === '4') return 'completed'
+    return String(s || '').toLowerCase()
+  }
+
   const handlePledge = async (amount: number) => {
     try {
       await createPledge({ projectId, amount }).unwrap()
@@ -213,8 +222,33 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
             )}
           </div>
 
+          {/* Completed Milestones Section */}
+          {milestones.some((m: any) => getNormalizedStatus(m.status) === 'completed') && (
+            <div className="card mb-6 border-2 border-green-500/20 bg-green-50/5 animate-fade-in">
+              <h2 className="text-2xl font-semibold mb-4 text-green-600 flex items-center gap-2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M7.75 12L10.58 14.83L16.25 9.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Completed Milestones
+              </h2>
+              <div className="space-y-4">
+                {milestonesWithFunding.filter((m: any) => getNormalizedStatus(m.status) === 'completed').map((milestone: any) => (
+                  <MilestoneCard
+                    key={milestone.milestone_id}
+                    milestone={milestone}
+                    projectId={projectId}
+                    project={project}
+                    fundedAmount={milestone.funded_amount}
+                    onUpdate={refetchMilestones}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Activated Milestones Container */}
-          {milestones.some((m: any) => m.is_activated) && (
+          {milestones.some((m: any) => m.is_activated && getNormalizedStatus(m.status) !== 'completed') && (
             <div className="card mb-6 border-2 border-blue-500/20 bg-blue-50/5">
               <h2 className="text-2xl font-semibold mb-4 text-blue-600 flex items-center gap-2">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -223,7 +257,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
                 Activated Milestones
               </h2>
               <div className="space-y-4">
-                {milestonesWithFunding.filter((m: any) => m.is_activated).map((milestone: any) => (
+                {milestonesWithFunding.filter((m: any) => m.is_activated && getNormalizedStatus(m.status) !== 'completed').map((milestone: any) => (
                   <MilestoneCard
                     key={milestone.milestone_id}
                     milestone={milestone}

@@ -21,7 +21,7 @@ async function getLastSyncedBlock() {
     );
     if (res.rowCount === 0) {
       await db.query(
-        "INSERT INTO sync_state (contract_address, last_processed_block, updated_at) VALUES ($1, 0, NOW())",
+        "INSERT INTO sync_state (contract_address, last_processed_block, updated_at) VALUES ($1, 0, datetime('now'))",
         [contract.target.toLowerCase()]
       );
       return 0;
@@ -88,7 +88,7 @@ async function handlePledgeMade(event) {
   try {
     const res = await db.query(
       `INSERT INTO finance_pledge (project_id, backer_id, amount, currency, status, payment_reference, created_at)
-        VALUES ($1, $2, $3, 'ETH', 'active', $4, NOW())
+        VALUES ($1, $2, $3, 'ETH', 'active', $4, datetime('now'))
         RETURNING id`,
       [project_db_id, backer_id, amount, event.transactionHash]
     );
@@ -161,7 +161,7 @@ async function handleFundsReleased(event) {
   } else {
     const w_ins = await db.query(
       `INSERT INTO finance_wallet (owner_type, owner_id, balance, currency, created_at)
-           VALUES ('creator', $1, 0, 'USD', NOW()) RETURNING id`,
+           VALUES ('creator', $1, 0, 'USD', datetime('now')) RETURNING id`,
       [creator_id]
     );
     wallet_id = w_ins.rows[0].id;
@@ -170,7 +170,7 @@ async function handleFundsReleased(event) {
   // Insert release
   await db.query(
     `INSERT INTO finance_release (milestone_id, amount_released, released_to_wallet_id, released_at, tx_reference)
-       VALUES ($1, $2, $3, NOW(), $4)`,
+       VALUES ($1, $2, $3, datetime('now'), $4)`,
     [milestone_db_id, amount, wallet_id, event.transactionHash]
   );
 
@@ -209,7 +209,7 @@ async function handleRefundIssued(event) {
     // Insert refund
     await db.query(
       `INSERT INTO finance_refund (pledge_id, amount, reason, status, created_at)
-             VALUES ($1, $2, 'On-chain refund', 'processed', NOW())`,
+             VALUES ($1, $2, 'On-chain refund', 'processed', datetime('now'))`,
       [pledge_id, amount]
     );
 
@@ -220,6 +220,28 @@ async function handleRefundIssued(event) {
   } else {
     LOG("RefundIssued SKIPPED: No active pledge found or already refunded.");
   }
+}
+
+async function handleVotingStarted(event) {
+  const [projectId, milestoneId] = event.args;
+
+  const project_r = await db.query(
+    `SELECT id FROM projects_project WHERE onchain_project_id=$1`,
+    [Number(projectId)]
+  );
+  if (project_r.rowCount === 0) return;
+  const project_db_id = project_r.rows[0].id;
+
+  const ms_r = await db.query(
+    `SELECT id FROM projects_milestone WHERE project_id=$1 AND onchain_milestone_id=$2`,
+    [project_db_id, Number(milestoneId)]
+  );
+  if (ms_r.rowCount === 0) return;
+  const milestone_db_id = ms_r.rows[0].id;
+
+  await db.query(`UPDATE projects_milestone SET status='voting' WHERE id=$1`, [milestone_db_id]);
+
+  LOG(`VotingStarted OK: Updated milestone ${milestone_db_id} to 'voting'`);
 }
 
 async function processEvent(event) {
@@ -235,6 +257,8 @@ async function processEvent(event) {
       await handleFundsReleased(event);
     } else if (event.eventName === "RefundIssued") {
       await handleRefundIssued(event);
+    } else if (event.eventName === "VotingStarted") {
+      await handleVotingStarted(event);
     }
   } catch (err) {
     console.error(`Error processing event ${event.eventName} at ${transactionHash}:`, err);
@@ -245,6 +269,19 @@ async function processEvent(event) {
 async function main() {
   console.log("Indexer started (Django Compatible Mode).");
   LOG("Indexer booted.");
+
+  // Ensure sync_state table exists
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS sync_state (
+        contract_address TEXT PRIMARY KEY,
+        last_processed_block INTEGER DEFAULT 0,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  } catch (err) {
+    console.error("Failed to ensure sync_state table exists:", err);
+  }
 
   while (true) {
     try {

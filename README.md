@@ -1,176 +1,109 @@
-# 🚀 Milestone-Based Crowdfunding Platform  
-### <sup>Blockchain-Powered • Event-Indexed • Full-Stack Escrow System</sup>
+# Escrow Milestone Funding Project
 
-![Solidity](https://img.shields.io/badge/Solidity-%23363636.svg?style=for-the-badge&logo=solidity&logoColor=white)
-![Django](https://img.shields.io/badge/Django-092E20.svg?style=for-the-badge&logo=django&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-%23336791.svg?style=for-the-badge&logo=postgresql&logoColor=white)
-![Hardhat](https://img.shields.io/badge/Hardhat-FFCC00.svg?style=for-the-badge&logo=ethereum&logoColor=black)
-
----
-
-## 🌟 Overview
-
-This is a **milestone-based crowdfunding platform** where the **Smart Contract is the source of truth**.  
-Users interact with the blockchain for pledging, voting, releasing funds, and refunds — and an **Indexer** syncs events into PostgreSQL for fast querying.
-
-✔ **Creator launches projects**  
-✔ **Backers pledge directly to blockchain**  
-✔ **Milestones must be approved to release funds**  
-✔ **Indexer listens to on-chain events**  
-✔ **Backend exposes API + builds blockchain transactions**  
-✔ **Frontend consumes the API + wallet interactions**
-
----
-
-## 🏗️ Architecture
-
-```
-Frontend (Next.js)
-        │
-Backend API (Django)
-        │
-PostgreSQL  ←  Indexer (Node.js listens to smart contract events)
-        ↑
-Smart Contract (Hardhat / Solidity)
-```
-
-### Components
-
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Smart Contract** | Solidity, Hardhat | Core escrow logic, holds funds |
-| **Indexer** | Node.js, Ethers.js | Listens to events → stores in PostgreSQL |
-| **Database** | PostgreSQL | Indexed + query optimized storage |
-| **Backend** | Django REST | API + builds blockchain tx payloads |
-| **Frontend** | Next.js, Wagmi | User interface |
-
----
-
-## ⚙️ Features
-
-### 🎯 Creator Features
-- Create new projects  
-- Define milestone structure  
-- Track milestone progress  
-- Receive funds after approval  
-
-### 💸 Backer Features
-- Pledge using wallet  
-- Track project progress  
-- Vote on milestone release  
-- Request refund when goal is not met  
-
-### 🛠️ Developer Features
-- Clean modular smart contracts  
-- Indexer with event-based syncing  
-- REST API with Swagger UI  
-- JWT authentication  
-- PostgreSQL multi-database setup  
-
----
+A decentralized crowdfunding platform with milestone-based funding, community governance, and secure escrow.
 
 ## 🚀 Quick Start
 
-### 1️⃣ Clone the project
+### Option 1: Use the Startup Script (Recommended)
 ```bash
-git clone https://github.com/your-user/your-repo.git
-cd your-repo
+# Windows
+start-all.bat
+
+# This will automatically:
+# 1. Start Hardhat node
+# 2. Deploy contracts
+# 3. Start backend
+# 4. Start indexer
+# 5. Start frontend
 ```
 
----
+### Option 2: Manual Start
+See [STARTUP_GUIDE.md](./STARTUP_GUIDE.md) for detailed instructions.
 
-## 📦 Smart Contract Setup
+## 📁 Project Structure
+
+```
+Escrow-Milestone-Funding-project/
+├── backend/              # Django REST API
+│   ├── manage.py
+│   └── db.sqlite3       # SQLite database
+├── frontend/            # Next.js application
+│   ├── app/
+│   ├── components/
+│   └── lib/
+├── smartcontract/       # Hardhat smart contracts
+│   ├── contracts/
+│   ├── scripts/
+│   ├── deployments.json # Contract addresses
+│   └── worker/          # Blockchain indexer
+│       └── indexer.js
+├── STARTUP_GUIDE.md     # Detailed startup instructions
+├── start-all.bat        # Quick start script
+└── clear-databases.bat  # Database reset script
+```
+
+## 🔄 Clearing Databases & Restarting
+
+### Step 1: Stop All Services
+Press `Ctrl+C` in each terminal running:
+- Hardhat node
+- Backend server
+- Indexer
+- Frontend
+
+### Step 2: Clear Databases
 ```bash
-cd smartcontract
-npm install
-npx hardhat node
+# Option A: Use the script
+clear-databases.bat
+
+# Option B: Manual
+cd backend
+del db.sqlite3
+python manage.py migrate
+
+cd ../smartcontract/worker
+del indexer.sqlite3
+```
+
+### Step 3: Restart Everything
+```bash
+start-all.bat
+```
+
+## 🌐 Access Points
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **Admin Panel**: http://localhost:8000/admin
+- **Hardhat RPC**: http://127.0.0.1:8545
+
+## 📚 Documentation
+
+- [STARTUP_GUIDE.md](./STARTUP_GUIDE.md) - Complete startup instructions
+- [Smart Contract Docs](./smartcontract/README.md) - Contract documentation
+- [API Docs](./backend/README.md) - Backend API documentation
+
+## ⚠️ Important Notes
+
+> **CRITICAL**: Whenever you restart the Hardhat node, you MUST redeploy contracts!
+
+```bash
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
----
+Otherwise, the frontend will point to non-existent contract addresses.
 
-## 🔄 Indexer Setup
-```bash
-cd smartcontract/worker
-node apply_migrations.js
-node indexer.js
-```
+## 🛠️ Tech Stack
 
----
-
-## 🐍 Backend Setup (Django)
-```bash
-cd backend
-python -m venv venv
-venv\Scriptsctivate     # Windows
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
-```
-
-➡ Swagger Docs → http://127.0.0.1:8000/api/docs
-
----
-
-## 💻 Frontend Setup (Next.js)
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-➡ Frontend → http://localhost:3000
-
----
-
-## 🔥 API Endpoints (Important)
-
-### **Projects**
-- `GET /api/projects/`
-- `POST /api/projects/create/`
-
-### **Milestones**
-- `GET /api/projects/{id}/milestones/`
-- `POST /api/milestones/{id}/approve/`
-
-### **Pledges**
-- `POST /api/projects/{id}/pledge/`
-
-### **Authentication**
-- `POST /auth/register/`
-- `POST /auth/login/`
-- `GET /auth/me/`
-
----
-
-## 🧩 Tech Stack
-
-| Category | Tech |
-|----------|------|
-| Frontend | Next.js, Wagmi, Tailwind |
-| Backend | Django REST, PostgreSQL |
-| Smart Contracts | Solidity, Hardhat |
-| Indexer | Node.js, Ethers.js |
-| Auth | JWT, DRF SimpleJWT |
-| Tools | Swagger, GraphQL, Channels |
-
----
-
-## 🛡️ Security
-- Role-based access (Creator / Backer)
-- Secure JWT auth
-- Smart contract protections:
-  - Reentrancy protection  
-  - Milestone validation  
-  - Strict access modifiers  
-
----
+- **Frontend**: Next.js 16, React 19, TailwindCSS, Ethers.js
+- **Backend**: Django, Django REST Framework, SQLite
+- **Smart Contracts**: Solidity, Hardhat, Ethers.js
+- **Indexer**: Node.js, SQLite
 
 ## 📝 License
-MIT — free to modify, improve, and build on.
+
+MIT
 
 ---
 
-## 💙 Credits
-Full-stack developer & Web3 enthusiast.
+**For detailed instructions, see [STARTUP_GUIDE.md](./STARTUP_GUIDE.md)**

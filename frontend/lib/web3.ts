@@ -4,80 +4,109 @@ const PROJECT_ESCROW_ABI = [
     {
         "inputs": [
             {
-                "internalType": "uint256",
-                "name": "projectId",
-                "type": "uint256"
-            }
-        ],
-        "name": "pledge",
-        "outputs": [],
-        "stateMutability": "payable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "fundingGoalWei",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "_milestones",
+                "type": "address"
             },
             {
-                "internalType": "uint256",
-                "name": "deadlineTimestamp",
-                "type": "uint256"
-            }
-        ],
-        "name": "createProject",
-        "outputs": [
+                "internalType": "address",
+                "name": "_governance",
+                "type": "address"
+            },
             {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "_refunds",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_treasury",
+                "type": "address"
             }
         ],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "constructor"
     },
     {
+        "anonymous": false,
         "inputs": [
             {
+                "indexed": true,
                 "internalType": "uint256",
                 "name": "projectId",
                 "type": "uint256"
             },
             {
-                "internalType": "string",
-                "name": "title",
-                "type": "string"
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
             },
             {
+                "indexed": false,
                 "internalType": "uint256",
-                "name": "amountWei",
+                "name": "amount",
                 "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
             }
         ],
-        "name": "submitMilestone",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+        "name": "FundsReleased",
+        "type": "event"
     },
     {
+        "anonymous": false,
         "inputs": [
             {
+                "indexed": true,
                 "internalType": "uint256",
                 "name": "projectId",
                 "type": "uint256"
             },
             {
+                "indexed": true,
                 "internalType": "uint256",
                 "name": "milestoneId",
                 "type": "uint256"
             }
         ],
-        "name": "activateMilestone",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+        "name": "MilestoneActivated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "MilestoneSubmitted",
+        "type": "event"
     },
     {
         "anonymous": false,
@@ -146,15 +175,9 @@ const PROJECT_ESCROW_ABI = [
             },
             {
                 "indexed": true,
-                "internalType": "uint256",
-                "name": "milestoneId",
-                "type": "uint256"
-            },
-            {
-                "indexed": false,
-                "internalType": "string",
-                "name": "title",
-                "type": "string"
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
             },
             {
                 "indexed": false,
@@ -163,7 +186,44 @@ const PROJECT_ESCROW_ABI = [
                 "type": "uint256"
             }
         ],
-        "name": "MilestoneSubmitted",
+        "name": "RefundIssued",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "approve",
+                "type": "bool"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "weight",
+                "type": "uint256"
+            }
+        ],
+        "name": "VoteCast",
         "type": "event"
     },
     {
@@ -182,8 +242,348 @@ const PROJECT_ESCROW_ABI = [
                 "type": "uint256"
             }
         ],
-        "name": "MilestoneActivated",
+        "name": "VotingStarted",
         "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            }
+        ],
+        "name": "activateMilestone",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "fundingGoalWei",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "deadlineTimestamp",
+                "type": "uint256"
+            }
+        ],
+        "name": "createProject",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "governanceContract",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "milestonesContract",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "nextProjectId",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            }
+        ],
+        "name": "openVoting",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "platformFeeBps",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            }
+        ],
+        "name": "pledge",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "pledges",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "projects",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "creator",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "fundingGoal",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "currentFunding",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "deadline",
+                "type": "uint256"
+            },
+            {
+                "internalType": "enum ProjectEscrow.ProjectStatus",
+                "name": "status",
+                "type": "uint8"
+            },
+            {
+                "internalType": "bool",
+                "name": "hasActiveMilestones",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            }
+        ],
+        "name": "refundMilestone",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "refundsContract",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            }
+        ],
+        "name": "releaseFunds",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            }
+        ],
+        "name": "requestRefund",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "newFeeBps",
+                "type": "uint256"
+            }
+        ],
+        "name": "setPlatformFeeBps",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amountWei",
+                "type": "uint256"
+            }
+        ],
+        "name": "submitMilestone",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "treasuryContract",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "projectId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "milestoneId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "approve",
+                "type": "bool"
+            }
+        ],
+        "name": "voteOnMilestone",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
     }
 ];
 
@@ -236,7 +636,7 @@ export const pledgeToProject = async (
 };
 
 // Default contract address for local Hardhat node
-const LOCAL_PROJECT_ESCROW_ADDRESS = '0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6';
+const LOCAL_PROJECT_ESCROW_ADDRESS = '0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB';
 
 export const deployProject = async (
     fundingGoalEth: string,
@@ -273,11 +673,23 @@ export const deployProject = async (
     console.log('Transaction confirmed. Logs:', receipt.logs.length);
 
     // Extract project ID from event logs
+    console.log('Receipt logs:', JSON.stringify(receipt.logs, null, 2));
+
+    // Debug: Print the expected topic hash for ProjectCreated
+    try {
+        const eventFragment = contract.interface.getEvent('ProjectCreated');
+        console.log('Expected ProjectCreated topic hash:', eventFragment?.topicHash);
+    } catch (err) {
+        console.log('Could not get event fragment:', err);
+    }
+
     let onchainProjectId: number | undefined;
     for (const log of receipt.logs) {
         try {
+            // Use spread syntax to ensure topics is a plain array
+            const topics = [...log.topics];
             const parsed = contract.interface.parseLog({
-                topics: log.topics as string[],
+                topics: topics,
                 data: log.data
             });
             console.log('Parsed log:', parsed?.name, parsed?.args);
@@ -287,7 +699,7 @@ export const deployProject = async (
                 break;
             }
         } catch (e) {
-            // Not a matching log, skip
+            console.warn('Failed to parse log:', e);
         }
     }
 
@@ -338,8 +750,9 @@ export const submitMilestone = async (
     let onchainMilestoneId: number | undefined;
     for (const log of receipt.logs) {
         try {
+            const topics = [...log.topics];
             const parsed = contract.interface.parseLog({
-                topics: log.topics as string[],
+                topics: topics,
                 data: log.data
             });
             console.log('Parsed log:', parsed?.name, parsed?.args);
@@ -349,7 +762,7 @@ export const submitMilestone = async (
                 break;
             }
         } catch (e) {
-            // Not a matching log, skip
+            console.warn('Failed to parse log:', e);
         }
     }
 

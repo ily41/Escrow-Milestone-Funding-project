@@ -1,9 +1,21 @@
+console.log('Is deadline in future?', 1767324420 > now)
+ne timestamp:', 1767324420)
+console.console.log('Deadli
+const now = Math.floor(Date.now() / 1000)
 await escrow.voteOnMilestone(10, 4, true)
-)  ethers.parseEther("0.00005")  "Milestone 0",  10,await escrow.submitMilestone(
+)
+  ethers.parseEther("0.00005")
+  "Milestone 0",
+  10,
+await escrow.submitMilestone(
 await escrow.voteOnMilestone(10, 3, true)
 await escrow.submitMilestone(10, "M", ethers.parseEther("0.00005"));
 await escrow.voteOnMilestone(10, 2, true)
-)  ethers.parseEther("0.00005")  "Milestone 0",  10,await escrow.submitMilestone(
+)
+  ethers.parseEther("0.00005")
+  "Milestone 0",
+  10,
+await escrow.submitMilestone(
 await escrow.voteOnMilestone(10, 1, true)
 await escrow.voteOnMilestone(10, 1, true);
 await escrow.submitMilestone(10, "M", ethers.parseEther("0.00005"));
@@ -13,36 +25,64 @@ await escrow.voteOnMilestone(10, 0, true)
 await escrow.voteOnMilestone(10, 0, true);
 await escrow.submitMilestone(10, "M", ethers.parseEther("0.00005"));
 await escrow.pledge(10, { value: ethers.parseEther("0.0001") });
-)  Math.floor(Date.now()/1000) + 600  ethers.parseEther("0.001"),await escrow.createProject(
+)
+  Math.floor(Date.now()/1000) + 600
+  ethers.parseEther("0.001"),
+await escrow.createProject(
 await escrow.voteOnMilestone(9, 0, true)
 await escrow.voteOnMilestone(8, 0, true)
 await escrow.voteOnMilestone(9, 0, true)
-);  ethers.parseEther("0.00005")  "Milestone Test",  9,await escrow.submitMilestone(
+);
+  ethers.parseEther("0.00005")
+  "Milestone Test",
+  9,
+await escrow.submitMilestone(
 await escrow.pledge(9, { value: ethers.parseEther("0.0001") })
 await escrow.createProject(ethers.parseEther("0.002"), Math.floor(Date.now()/1000) + 600);
 await escrow.createProject(ethers.parseEther("0.001"), Math.floor(Date.now()/1000) + 600);
 me.address;
 const [me] = await ethers.getSigners();
-);  process.env.CONTRACT_ADDRESS  "ProjectEscrow",const escrow = await ethers.getContractAt(
+);
+  process.env.CONTRACT_ADDRESS
+  "ProjectEscrow",
+const escrow = await ethers.getContractAt(
 await escrow.createProject(ethers.parseEther("0.002"), Math.floor(Date.now()/1000) + 600);
 await escrow.createProject(ethers.parseEther("0.001"), Math.floor(Date.now()/1000) + 600);
-);  Math.floor(Date.now()/1000) + 600  ethers.parseEther("0.002"),await escrow.createProject(
-);  Math.floor(Date.now()/1000) + 600  ethers.parseEther("0.001"),await escrow.createProject(
+);
+  Math.floor(Date.now()/1000) + 600
+  ethers.parseEther("0.002"),
+await escrow.createProject(
+);
+  Math.floor(Date.now()/1000) + 600
+  ethers.parseEther("0.001"),
+await escrow.createProject(
 me.address;
 const [me] = await ethers.getSigners();
-);  process.env.CONTRACT_ADDRESS  "ProjectEscrow",const escrow = await ethers.getContractAt(
+);
+  process.env.CONTRACT_ADDRESS
+  "ProjectEscrow",
+const escrow = await ethers.getContractAt(
 await escrow.createProject(ethers.parseEther("0.002"), Math.floor(Date.now()/1000) + 600)
 await escrow.createProject(ethers.parseEther("0.001"), Math.floor(Date.now()/1000) + 600)
 await escrow.createProject(ethers.parseEther("0.002"), Math.floor(Date.now()/1000) + 600)
 await escrow.createProject(ethers.parseEther("0.001"), Math.floor(Date.now()/1000) + 600)
-)  Math.floor(Date.now()/1000) + 600  ethers.parseEther("0.001"),await escrow.createProject(
-)  Math.floor(Date.now()/1000) + 600  // +10 min deadline  ethers.parseEther("0.001"), // tiny goalawait escrow.createProject(
+)
+  Math.floor(Date.now()/1000) + 600
+  ethers.parseEther("0.001"),
+await escrow.createProject(
+)
+  Math.floor(Date.now()/1000) + 600  // +10 min deadline
+  ethers.parseEther("0.001"), // tiny goal
+await escrow.createProject(
 const [me] = await ethers.getSigners()
 const escrow = await ethers.getContractAt("ProjectEscrow", process.env.CONTRACT_ADDRESS)
 npx hardhat console --network sepolia
 await escrow.pledge(0, { value: ethers.parseEther("0.004") })
 await escrow.pledge(0, { value: ethers.parseEther("0.4") })
-)  Math.floor(Date.now()/1000) + 3600  ethers.parseEther("2"),await escrow.createProject(
+)
+  Math.floor(Date.now()/1000) + 3600
+  ethers.parseEther("2"),
+await escrow.createProject(
 me.address
 (await escrow.createProject(ethers.parseEther("0.5"), Math.floor(Date.now()/1000) + 3600)).hash
 me.address
@@ -61,11 +101,17 @@ const [me] = await ethers.getSigners();
 (await escrow.submitMilestone(0, "Test", ethers.parseEther("0.05"))).hash
 (await escrow.submitMilestone(0, "Test", ethers.parseEther("0.01"))).hash
 (await escrow.voteOnMilestone(0, 0, true)).hash
-)).hash  Math.floor(Date.now()/1000) + 2000  ethers.parseEther("0.1"),(await escrow.createProject(
+)).hash
+  Math.floor(Date.now()/1000) + 2000
+  ethers.parseEther("0.1"),
+(await escrow.createProject(
 const [me] = await ethers.getSigners();
 const escrow = await ethers.getContractAt("ProjectEscrow", addr);
 const addr = process.env.CONTRACT_ADDRESS;
-)).hash  Math.floor(Date.now()/1000) + 2000  ethers.parseEther("0.1"),(await escrow.createProject(
+)).hash
+  Math.floor(Date.now()/1000) + 2000
+  ethers.parseEther("0.1"),
+(await escrow.createProject(
 const [me] = await ethers.getSigners();
 const escrow = await ethers.getContractAt("ProjectEscrow", addr);
 const addr = process.env.CONTRACT_ADDRESS;

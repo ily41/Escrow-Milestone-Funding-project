@@ -14,6 +14,7 @@ contract Milestones {
         bool exists;
         bool fundsReleased;
         bool isActivated;
+        bool votingStarted;
     }
 
     // projectId => milestoneId => Milestone
@@ -46,7 +47,8 @@ contract Milestones {
             amountWei: amountWei,
             exists: true,
             fundsReleased: false,
-            isActivated: false
+            isActivated: false,
+            votingStarted: false
         });
 
         // Increase count AFTER using the current index
@@ -63,6 +65,17 @@ contract Milestones {
         m.isActivated = true;
     }
 
+    function startVoting(
+        uint256 projectId,
+        uint256 milestoneId
+    ) external onlyEscrow {
+        Milestone storage m = milestones[projectId][milestoneId];
+        require(m.exists, "Milestones: not found");
+        require(m.isActivated, "Milestones: not activated");
+        require(!m.votingStarted, "Milestones: voting already started");
+        m.votingStarted = true;
+    }
+
     function markReleased(
         uint256 projectId,
         uint256 milestoneId
@@ -76,10 +89,10 @@ contract Milestones {
     function getMilestone(uint256 projectId, uint256 milestoneId)
         external
         view
-        returns (uint256 amountWei, bool exists, bool fundsReleased, bool isActivated)
+        returns (uint256 amountWei, bool exists, bool fundsReleased, bool isActivated, bool votingStarted)
     {
         Milestone memory m = milestones[projectId][milestoneId];
-        return (m.amountWei, m.exists, m.fundsReleased, m.isActivated);
+        return (m.amountWei, m.exists, m.fundsReleased, m.isActivated, m.votingStarted);
     }
 
 

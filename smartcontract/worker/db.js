@@ -3,6 +3,7 @@ const Database = require('better-sqlite3');
 
 // Resolve path to backend's db.sqlite3
 const dbPath = path.resolve(__dirname, '../../backend/db.sqlite3');
+console.log("DB Path:", dbPath);
 const db = new Database(dbPath); // verbose: console.log to debug if needed
 
 module.exports = {
@@ -29,7 +30,8 @@ module.exports = {
         try {
             const stmt = db.prepare(cleanSql);
 
-            if (isInsert || isUpdate || isDelete) {
+            if (!stmt.reader) {
+                // INSERT, UPDATE, DELETE, CREATE, etc. (Writes)
                 const info = stmt.run(...params);
                 // Info: { changes: number, lastInsertRowid: number | bigint }
 
@@ -48,7 +50,7 @@ module.exports = {
                     rows: rows
                 };
             } else {
-                // SELECT
+                // SELECT (Reads)
                 const rows = stmt.all(...params);
                 return {
                     rowCount: rows.length,

@@ -10,6 +10,7 @@ import {
   useDeleteMilestoneMutation,
   useActivateMilestoneMutation,
   usePledgeMilestoneMutation,
+  useRefundMilestoneMutation,
 } from '@/lib/api'
 import { pledgeToProject, activateMilestone as activateMilestoneOnChain } from '@/lib/web3'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -107,6 +108,7 @@ export default function MilestoneCard({ milestone, projectId, project, fundedAmo
   const [deleteMilestone, { isLoading: isDeleting }] = useDeleteMilestoneMutation()
   const [activateMilestone, { isLoading: isActivating }] = useActivateMilestoneMutation()
   const [pledgeMilestone, { isLoading: isPledging }] = usePledgeMilestoneMutation()
+  const [refundMilestone, { isLoading: isRefunding }] = useRefundMilestoneMutation()
 
   const handlePledge = async () => {
     const amount = window.prompt('Enter amount to pledge (ETH):')
@@ -132,7 +134,6 @@ export default function MilestoneCard({ milestone, projectId, project, fundedAmo
       }).unwrap()
 
       // 2. Execute on-chain transaction using user's linked wallet type
-      toast.pending('Waiting for wallet confirmation...')
       await pledgeToProject(
         escrow_address,
         onchain_project_id,
@@ -141,10 +142,15 @@ export default function MilestoneCard({ milestone, projectId, project, fundedAmo
       )
 
       toast.success('Pledge confirmed on blockchain!')
-      onUpdate()
+
+      // 3. Refresh milestone and project data to show updated progress
+      setTimeout(() => {
+        onUpdate()
+      }, 2000) // Wait 2 seconds for indexer to process
     } catch (error: any) {
       const errorMessage = error?.data?.detail || error?.data?.error || error?.message || 'Pledge failed'
       toast.error(errorMessage)
+      console.error(error)
     }
   }
 
@@ -197,6 +203,15 @@ export default function MilestoneCard({ milestone, projectId, project, fundedAmo
   }
 
   const handleOpenVoting = async () => {
+    const confirmed = await confirm({
+      title: 'Open Voting',
+      message: 'Are you sure you want to open voting? This will allow backers to vote.',
+      confirmText: 'Open Voting',
+      cancelText: 'Cancel',
+      type: 'info',
+    })
+    if (!confirmed) return
+
     try {
       const milestoneId = (milestone as any).id || milestone.milestone_id
       if (!milestoneId) {
@@ -205,7 +220,7 @@ export default function MilestoneCard({ milestone, projectId, project, fundedAmo
       }
       await openVoting({ milestoneId }).unwrap()
       onUpdate()
-      toast.success('Voting opened!')
+      // toast.success('Voting opened!')
     } catch (error: any) {
       const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to open voting'
       toast.error(errorMessage)
@@ -251,6 +266,31 @@ export default function MilestoneCard({ milestone, projectId, project, fundedAmo
       toast.success('Funds released successfully!')
     } catch (error: any) {
       const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to release funds'
+      toast.error(errorMessage)
+    }
+  }
+
+  const handleRefund = async () => {
+    const confirmed = await confirm({
+      title: 'Refund Milestone',
+      message: 'Voting failed. Refund this milestone to the project pool?',
+      confirmText: 'Refund',
+      cancelText: 'Cancel',
+      type: 'danger',
+    })
+    if (!confirmed) return
+
+    try {
+      const milestoneId = (milestone as any).id || milestone.milestone_id
+      if (!milestoneId) {
+        toast.error('Milestone ID not found')
+        return
+      }
+      await refundMilestone({ milestoneId }).unwrap()
+      onUpdate()
+      toast.success('Milestone refunded to project pool!')
+    } catch (error: any) {
+      const errorMessage = error?.data?.detail || error?.data?.error || error?.data?.message || error?.error || 'Failed to refund milestone'
       toast.error(errorMessage)
     }
   }
@@ -509,6 +549,33 @@ export default function MilestoneCard({ milestone, projectId, project, fundedAmo
               >
                 <OpenVotingIcon />
                 <span>Open Voting</span>
+              </button>
+            )}
+
+            {milestoneStatus === 'voting' && (milestone.approve_votes_count || 0) > (milestone.reject_votes_count || 0) && (
+              <button
+                onClick={handleRelease}
+                className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#4CAF50', color: 'white' }}
+                disabled={loading}
+              >
+                <ReleaseIcon />
+                <span>Release Funds</span>
+              </button>
+            )}
+
+            {milestoneStatus === 'voting' && (milestone.reject_votes_count || 0) >= (milestone.approve_votes_count || 0) && (
+              <button
+                onClick={handleRefund}
+                className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#ef4444', color: 'white' }}
+                disabled={loading}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M2 8L4 5M2 8L0 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span>Refund</span>
               </button>
             )}
 

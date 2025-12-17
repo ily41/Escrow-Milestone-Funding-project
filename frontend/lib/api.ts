@@ -123,8 +123,8 @@ export const api = createApi({
     }),
     updateMilestone: builder.mutation({
       query: ({ projectId, milestoneId, ...milestoneData }) => ({
-        url: `/api/projects/${projectId}/milestones/${milestoneId}/`,
-        method: 'PUT',
+        url: `/api/projects/milestones/${milestoneId}/`,
+        method: 'PATCH',
         body: milestoneData,
       }),
       invalidatesTags: ['Milestone', 'Project'],
@@ -151,18 +151,7 @@ export const api = createApi({
       }),
       invalidatesTags: ['Milestone', 'Project'],
     }),
-    updateMilestone: builder.mutation({
-      query: ({ projectId, milestoneId, ...milestoneData }) => ({
-        url: `/api/projects/milestones/${milestoneId}/`,
-        method: 'PATCH',
-        body: milestoneData,
-      }),
-      invalidatesTags: (result, error, { milestoneId }) => [
-        { type: 'Milestone', id: milestoneId },
-        'Milestone',
-        'Project',
-      ],
-    }),
+
     approveMilestone: builder.mutation({
       query: ({ id, ...approvalData }) => ({
         url: `/api/projects/milestones/${id}/approve/`,
@@ -233,6 +222,13 @@ export const api = createApi({
       }),
       invalidatesTags: ['Milestone', 'Project'],
     }),
+    refundMilestone: builder.mutation({
+      query: ({ milestoneId }) => ({
+        url: `/api/projects/milestones/${milestoneId}/refund-milestone/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Milestone', 'Project'],
+    }),
 
     // Updates endpoints (Temporarily disabled - not implemented in backend)
     getUpdates: builder.query({
@@ -272,6 +268,7 @@ export const {
   useVoteOnMilestoneMutation,
   useOpenVotingMutation,
   useReleaseFundsMutation,
+  useRefundMilestoneMutation,
   useGetUpdatesQuery,
   useCreateUpdateMutation,
   usePledgeMilestoneMutation,

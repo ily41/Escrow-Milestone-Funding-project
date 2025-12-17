@@ -207,7 +207,12 @@ class MilestoneViewSet(viewsets.ModelViewSet):
         queryset = Milestone.objects.all()
         project_id = self.request.query_params.get('project', None)
         if project_id:
-            queryset = queryset.filter(project_id=project_id)
+            # Handle comma-separated list of IDs
+            if ',' in project_id:
+                ids = [int(id) for id in project_id.split(',') if id.strip().isdigit()]
+                queryset = queryset.filter(project_id__in=ids)
+            else:
+                queryset = queryset.filter(project_id=project_id)
         return queryset
 
     @action(detail=True, methods=['post'])
