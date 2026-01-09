@@ -47,8 +47,11 @@ export function useAuth() {
         const handleLogout = () => {
             localStorage.removeItem('access_token')
             localStorage.removeItem('refresh_token')
+            localStorage.removeItem('wallet_type')
             setUser(null)
             router.push('/auth/login')
+            // Force page reload to clear all cached data
+            window.location.href = '/auth/login'
         }
 
         window.addEventListener('userLogin', handleLogin)

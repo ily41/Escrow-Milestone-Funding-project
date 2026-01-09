@@ -10,6 +10,8 @@ export interface User {
   is_backer: boolean
   is_admin: boolean
   created_at: string
+  wallet_address?: string
+  wallet_type?: 'metamask' | 'local' | null
 }
 
 export interface Creator {

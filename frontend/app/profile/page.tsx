@@ -1,21 +1,125 @@
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
-import { useGetWalletQuery } from '@/lib/api'
+import { useGetWalletQuery, useUpdateUserMutation } from '@/lib/api'
 import AuthGuard from '@/components/AuthGuard'
 import { format } from 'date-fns'
-import Image from 'next/image'
+import { connectWallet, connectLocalWallet, listLocalAccounts } from '@/lib/web3'
+import { useState, useEffect } from 'react'
+import { ethers } from 'ethers'
 
 export default function ProfilePage() {
     const { user } = useAuth()
     const { data: wallet, isLoading: walletLoading, error: walletError } = useGetWalletQuery(undefined, {
         skip: !user,
     })
+    const [updateUser] = useUpdateUserMutation()
+
+    // State for external wallet
+    const [externalBalance, setExternalBalance] = useState<string | null>(null)
+    const [isConnecting, setIsConnecting] = useState(false)
+    const [connectionError, setConnectionError] = useState<string | null>(null)
+    const [walletType, setWalletType] = useState<'metamask' | 'local' | null>(null)
+
+    // Local Account Selection
+    const [localAccounts, setLocalAccounts] = useState<string[]>([])
+    const [showAccountModal, setShowAccountModal] = useState(false)
+
+    // Initialize wallet type from local storage
+    useEffect(() => {
+        const storedType = localStorage.getItem('wallet_type') as 'metamask' | 'local' | null
+        if (storedType) {
+            setWalletType(storedType)
+        }
+    }, [])
 
     // Mock data for fallback
-    const mockBalance = '1,234.56'
     const mockCurrency = 'ETH'
     const profileImage = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'user'}`
+
+    useEffect(() => {
+        const fetchBalance = async () => {
+            if (user?.wallet_address && walletType) {
+                try {
+                    let provider;
+                    if (walletType === 'metamask' && typeof window !== 'undefined' && (window as any).ethereum) {
+                        provider = new ethers.BrowserProvider((window as any).ethereum)
+                    } else if (walletType === 'local') {
+                        provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545')
+                    }
+
+                    if (provider) {
+                        const balance = await provider.getBalance(user.wallet_address)
+                        setExternalBalance(ethers.formatEther(balance))
+                    }
+                } catch (err) {
+                    console.error("Error fetching balance:", err)
+                    setExternalBalance(null)
+                }
+            } else {
+                setExternalBalance(null)
+            }
+        }
+
+        fetchBalance()
+    }, [user?.wallet_address, walletType])
+
+    const handleConnectClick = async (type: 'metamask' | 'local') => {
+        if (type === 'metamask') {
+            handleConnect('metamask');
+        } else {
+            // For local, show selection modal
+            const accounts = await listLocalAccounts();
+            setLocalAccounts(accounts);
+            setShowAccountModal(true);
+        }
+    }
+
+    const handleConnect = async (type: 'metamask' | 'local', accountAddress?: string) => {
+        setIsConnecting(true)
+        setConnectionError(null)
+        try {
+            let address;
+            if (type === 'metamask') {
+                const result = await connectWallet()
+                address = result.address
+            } else {
+                const result = await connectLocalWallet(accountAddress)
+                address = result.address
+            }
+
+            // Link new wallet (replaces previous one)
+            await updateUser({ wallet_address: address }).unwrap()
+
+            // Persist type locally
+            localStorage.setItem('wallet_type', type)
+            setWalletType(type)
+            setShowAccountModal(false)
+
+        } catch (err: any) {
+            console.error(`${type} connection failed:`, err)
+            setConnectionError(err.message || `Failed to connect ${type}`)
+        } finally {
+            setIsConnecting(false)
+        }
+    }
+
+    const handleDisconnect = async () => {
+        if (!confirm('Are you sure you want to unlink your wallet?')) return;
+
+        setIsConnecting(true)
+        try {
+            await updateUser({ wallet_address: null }).unwrap()
+            setExternalBalance(null)
+            localStorage.removeItem('wallet_type')
+            setWalletType(null)
+        } catch (err: any) {
+            console.error("Disconnect failed:", err)
+            setConnectionError("Failed to disconnect wallet")
+        } finally {
+            setIsConnecting(false)
+        }
+    }
 
     return (
         <AuthGuard>
@@ -32,11 +136,10 @@ export default function ProfilePage() {
                         <div className="w-full md:w-1/3 lg:w-1/4">
                             <div className="card p-6 text-center">
                                 <div className="relative w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-surface shadow-lg bg-surface">
-                                    <Image
+                                    <img
                                         src={profileImage}
                                         alt="Profile"
-                                        fill
-                                        className="object-cover"
+                                        className="w-full h-full object-cover"
                                     />
                                 </div>
                                 <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>{user?.username}</h1>
@@ -60,6 +163,22 @@ export default function ProfilePage() {
                                         <span className="text-xs uppercase tracking-wider font-semibold opacity-60">Member Since</span>
                                         <div className="text-sm">{user?.created_at ? format(new Date(user.created_at), 'MMMM d, yyyy') : 'N/A'}</div>
                                     </div>
+                                    <div className="mt-4">
+                                        <span className="text-xs uppercase tracking-wider font-semibold opacity-60">Wallet Address</span>
+                                        <div className="text-sm font-mono break-all mt-1">
+                                            {user?.wallet_address ? user.wallet_address : (
+                                                <span className="text-amber-500 text-xs italic">Not linked</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {walletType && (
+                                        <div className="mt-4">
+                                            <span className="text-xs uppercase tracking-wider font-semibold opacity-60">Wallet Type</span>
+                                            <div className="text-sm capitalize mt-1 text-primary">
+                                                {walletType === 'metamask' ? 'MetaMask' : 'Local Wallet'}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -67,12 +186,12 @@ export default function ProfilePage() {
                         {/* Main Content */}
                         <div className="w-full md:w-2/3 lg:w-3/4 space-y-6">
 
-                            {/* Wallet Card */}
+                            {/* Wallet Connections */}
                             <div className="card bg-gradient-to-br from-surface to-surface/50 border-primary/20">
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
-                                        <h2 className="text-xl font-semibold mb-1" style={{ color: 'var(--text)' }}>Wallet Balance</h2>
-                                        <p className="text-sm opacity-70">Available funds for pledging and withdrawals</p>
+                                        <h2 className="text-xl font-semibold mb-1" style={{ color: 'var(--text)' }}>External Wallet</h2>
+                                        <p className="text-sm opacity-70">Connect your Web3 wallet to fund projects</p>
                                     </div>
                                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,65 +200,138 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                <div className="mb-6">
-                                    {walletLoading ? (
-                                        <div className="animate-pulse h-10 bg-gray-200 rounded w-1/3"></div>
-                                    ) : (
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-4xl font-bold text-primary">
-                                                {wallet?.balance ? parseFloat(wallet.balance).toLocaleString() : mockBalance}
-                                            </span>
-                                            <span className="text-xl font-medium opacity-70">
-                                                {wallet?.currency || mockCurrency}
-                                            </span>
+                                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* MetaMask Option */}
+                                    <div className={`p-4 rounded-xl border-2 transition-all ${walletType === 'metamask' ? 'border-primary bg-primary/5' : 'border-dashed border-border hover:border-primary/50'}`}>
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold">M</div>
+                                            <div className="font-semibold">MetaMask Wallet</div>
                                         </div>
-                                    )}
-                                    {walletError && !walletLoading && (
-                                        <p className="text-xs text-amber-500 mt-2 flex items-center gap-1">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                            </svg>
-                                            Using mock data (Network unavailable)
-                                        </p>
-                                    )}
+
+                                        {walletType === 'metamask' ? (
+                                            <div>
+                                                <div className="text-xs opacity-60 mb-1">Connected Address</div>
+                                                <div className="text-sm font-mono truncate mb-3 text-primary">{user?.wallet_address}</div>
+                                                <div className="flex items-baseline gap-2 mb-3">
+                                                    <span className="text-2xl font-bold text-primary">
+                                                        {externalBalance ? parseFloat(externalBalance).toFixed(4) : '...'}
+                                                    </span>
+                                                    <span className="text-sm font-medium opacity-70">ETH</span>
+                                                </div>
+                                                <div className="text-xs text-green-500 flex items-center gap-1 mb-3">
+                                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                    Active Session
+                                                </div>
+                                                <button
+                                                    onClick={handleDisconnect}
+                                                    disabled={isConnecting}
+                                                    className="text-xs text-red-500 hover:text-red-600 hover:underline"
+                                                >
+                                                    Unlink Wallet
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleConnectClick('metamask')}
+                                                disabled={isConnecting}
+                                                className="w-full btn-secondary text-sm"
+                                            >
+                                                {isConnecting ? 'Connecting...' : 'Connect MetaMask'}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Local Wallet Option */}
+                                    <div className={`p-4 rounded-xl border-2 transition-all ${walletType === 'local' ? 'border-primary bg-primary/5' : 'border-dashed border-border hover:border-primary/50'}`}>
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold">L</div>
+                                            <div className="font-semibold">Local Wallet</div>
+                                        </div>
+
+                                        {walletType === 'local' ? (
+                                            <div>
+                                                <div className="text-xs opacity-60 mb-1">Connected Address</div>
+                                                <div className="text-sm font-mono truncate mb-3 text-primary">{user?.wallet_address}</div>
+                                                <div className="flex items-baseline gap-2 mb-3">
+                                                    <span className="text-2xl font-bold text-primary">
+                                                        {externalBalance ? parseFloat(externalBalance).toFixed(4) : '...'}
+                                                    </span>
+                                                    <span className="text-sm font-medium opacity-70">ETH</span>
+                                                </div>
+                                                <div className="text-xs text-green-500 flex items-center gap-1 mb-3">
+                                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                    Active Session
+                                                </div>
+                                                <button
+                                                    onClick={handleDisconnect}
+                                                    disabled={isConnecting}
+                                                    className="text-xs text-red-500 hover:text-red-600 hover:underline"
+                                                >
+                                                    Unlink Wallet
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleConnectClick('local')}
+                                                disabled={isConnecting}
+                                                className="w-full btn-secondary text-sm"
+                                            >
+                                                {isConnecting ? 'Connecting...' : 'Connect Local'}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="flex gap-3">
-                                    <button className="btn-primary flex-1 flex justify-center items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                        </svg>
-                                        Add Funds
-                                    </button>
-                                    <button className="btn-secondary flex-1 flex justify-center items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        Withdraw
-                                    </button>
-                                </div>
+                                {connectionError && <p className="text-sm text-center text-red-500 mt-2">{connectionError}</p>}
+                                <p className="text-xs text-center opacity-50">Linking a new wallet will replace the existing connection.</p>
                             </div>
 
-                            {/* Recent Activity Placeholder */}
-                            <div className="card">
-                                <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text)' }}>Recent Activity</h3>
-                                <div className="space-y-4">
-                                    {[1, 2, 3].map((i) => (
-                                        <div key={i} className="flex items-center gap-4 p-3 rounded-lg hover:bg-surface/50 transition-colors cursor-pointer border border-transparent hover:border-border">
-                                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14H11V21L20 10H13Z" />
-                                                </svg>
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="font-medium">Pledged to Project Alpha</div>
-                                                <div className="text-xs opacity-60">2 days ago</div>
-                                            </div>
-                                            <div className="font-semibold text-primary">- 0.5 ETH</div>
+                            {/* Account Selection Modal */}
+                            {showAccountModal && (
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                    <div className="bg-surface card p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-lg font-bold">Select Local Account</h3>
+                                            <button onClick={() => setShowAccountModal(false)} className="text-gray-500 hover:text-gray-700">
+                                                ✕
+                                            </button>
                                         </div>
-                                    ))}
+                                        <div className="space-y-2">
+                                            {localAccounts.length > 0 ? (
+                                                localAccounts.map((acc, index) => (
+                                                    <button
+                                                        key={acc}
+                                                        onClick={() => handleConnect('local', acc)}
+                                                        className="w-full text-left p-3 rounded hover:bg-primary/10 border border-border transition-colors font-mono text-xs truncate"
+                                                    >
+                                                        <span className="font-bold mr-2 text-primary">#{index}</span>
+                                                        {acc}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <p className="text-center text-sm opacity-60 py-4">No accounts found. Is your local node running?</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                                <button className="w-full mt-4 text-center text-sm text-primary hover:underline">View All Activity</button>
+                            )}
+
+                            {/* Internal Platform Wallet (if needed for refunds/payouts) */}
+                            <div className="card">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--text)' }}>Platform Balance</h2>
+                                        <p className="text-sm opacity-70">Refunds and payouts</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-bold text-primary">
+                                        {wallet?.balance ? parseFloat(wallet.balance).toLocaleString() : '0.00'}
+                                    </span>
+                                    <span className="text-lg font-medium opacity-70">
+                                        {wallet?.currency || 'USD'}
+                                    </span>
+                                </div>
                             </div>
 
                         </div>

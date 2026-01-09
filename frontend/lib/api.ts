@@ -42,6 +42,14 @@ export const api = createApi({
       query: () => '/auth/me/',
       providesTags: ['User'],
     }),
+    updateUser: builder.mutation({
+      query: (userData) => ({
+        url: '/auth/wallet/link/',
+        method: 'POST',
+        body: userData,
+      }),
+      invalidatesTags: ['User'],
+    }),
 
     // Project endpoints
     getProjects: builder.query({
@@ -206,6 +214,7 @@ export const {
   useLoginMutation,
   useRegisterMutation,
   useGetCurrentUserQuery,
+  useUpdateUserMutation,
   useGetProjectsQuery,
   useGetProjectQuery,
   useCreateProjectMutation,

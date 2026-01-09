@@ -5,6 +5,7 @@ class MilestoneSerializer(serializers.ModelSerializer):
     approve_votes_count = serializers.SerializerMethodField()
     reject_votes_count = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
+    is_activated = serializers.SerializerMethodField()
 
     class Meta:
         model = Milestone
@@ -21,10 +22,17 @@ class MilestoneSerializer(serializers.ModelSerializer):
         # Progress based on milestone funding
         # funded_amount removed from model, returning 0 for now
         return 0
+    
+    def get_is_activated(self, obj):
+        # Status 3 = Activated
+        return obj.status == 3
+
 
 class ProjectSerializer(serializers.ModelSerializer):
     # milestones = MilestoneSerializer(many=True, read_only=True, source='milestone_set')
     progress_percentage = serializers.SerializerMethodField()
+    goal_amount = serializers.SerializerMethodField()
+    currency = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -35,6 +43,12 @@ class ProjectSerializer(serializers.ModelSerializer):
         if obj.funding_goal > 0:
             return (obj.total_pledged / obj.funding_goal) * 100
         return 0
+    
+    def get_goal_amount(self, obj):
+        return str(obj.funding_goal)
+    
+    def get_currency(self, obj):
+        return 'ETH'
 
 class PledgeSerializer(serializers.ModelSerializer):
     class Meta:

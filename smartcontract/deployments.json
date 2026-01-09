@@ -1,12 +1,12 @@
 {
-  "network": "localhost",
-  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "network": "sepolia",
+  "deployer": "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
   "addresses": {
-    "ProjectEscrow": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-    "Milestones": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    "GovernanceLight": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-    "Refunds": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-    "Treasury": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+    "ProjectEscrow": "0xb09da8a5B236fE0295A345035287e80bb0008290",
+    "Milestones": "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f",
+    "GovernanceLight": "0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D",
+    "Refunds": "0xC469e7aE4aD962c30c7111dc580B4adbc7E914DD",
+    "Treasury": "0x43ca3D2C94be00692D207C6A1e60D8B325c6f12f"
   },
-  "timestamp": "2025-11-29T14:22:34.375Z"
+  "timestamp": "2026-01-08T22:57:37.449Z"
 }
