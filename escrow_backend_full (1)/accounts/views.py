@@ -68,17 +68,25 @@ class LinkWalletView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
-    @extend_schema(summary="Link wallet address", request=WalletLinkSerializer)
+    @extend_schema(summary="Link or unlink wallet address", request=WalletLinkSerializer)
     def post(self, request):
         serializer = WalletLinkSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        wallet_address = serializer.validated_data["wallet_address"]
+        wallet_address = serializer.validated_data.get("wallet_address")
 
         profile, _ = WalletProfile.objects.get_or_create(user=request.user)
-        profile.wallet_address = wallet_address
-        profile.save()
+        
+        if wallet_address:
+            # Link wallet
+            profile.wallet_address = wallet_address
+            profile.save()
+            return Response({"detail": "Wallet linked", "wallet_address": wallet_address})
+        else:
+            # Unlink wallet
+            profile.wallet_address = None
+            profile.save()
+            return Response({"detail": "Wallet unlinked", "wallet_address": None})
 
-        return Response({"detail": "Wallet linked", "wallet_address": wallet_address})
 
 class WalletDetailView(APIView):
     authentication_classes = [JWTAuthentication]

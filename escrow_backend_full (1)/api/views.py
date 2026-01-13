@@ -153,16 +153,19 @@ class MilestoneActivationView(APIView):
         except Milestone.DoesNotExist:
             return Response({"detail": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Note: is_activated field removed from model
-        # In real implementation, this would trigger smart contract call
+        # Update milestone status to activated (3)
+        milestone.status = 3  # 3 = Activated
+        milestone.save(using='indexer')
         
         tx_hash = fake_tx_hash()
 
         return Response({
             "status": "activated",
             "tx_hash": tx_hash,
+            "milestone_id": milestone.milestone_id,
             "note": "Wire this to real web3 contract call",
         })
+
 
 class PledgeCreateView(APIView):
     permission_classes = [IsAuthenticated]

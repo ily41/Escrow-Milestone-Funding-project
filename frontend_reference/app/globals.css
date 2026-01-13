@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+@theme {
+  /* Light Mode Palette (Default) */
+  --color-bg: #f4f4f0;
+  --color-surface: #ffffff;
+  --color-text: #1a1a1a;
+  --color-primary: #7c8047;
+  --color-primary-text: #ffffff;
+  --color-secondary: #4b8282;
+  --color-accent: #d7745c;
+  --color-border: #e0e0d8;
+  --color-success: #7c8047;
+  --color-success-dark: #4b8282;
+
+  /* Legacy Compatibility */
+  --color-soft-gold: var(--color-surface);
+  --color-warm-beige: var(--color-border);
+  --color-light-cream: var(--color-bg);
+  --color-matte-black: var(--color-text);
+  --color-deep-red: var(--color-primary);
+  --color-success-light: var(--color-success);
+
+  /* GooeyNav Particle Colors */
+  --gooey-color-1: #ebf29c;
+  --gooey-color-2: #4b8282;
+  --gooey-color-3: #d7745c;
+  --gooey-color-4: #7c8047;
+
+  /* Backward Compatibility */
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --text: var(--color-text);
+  --primary: var(--color-primary);
+  --primary-text: var(--color-primary-text);
+  --secondary: var(--color-secondary);
+  --border: var(--color-border);
+  --success: var(--color-success);
+}
+
+/* Dark Mode */
+.dark {
+  --color-bg: #1a1a1a;
+  --color-surface: #2e2e2b;
+  --color-text: #f4f4f0;
+  --color-primary: #ebf29c;
+  --color-primary-text: #1a1a1a;
+  --color-secondary: #4b8282;
+  --color-accent: #d7745c;
+  --color-border: #7c8047;
+  --color-success: #7c8047;
+
+  --gradient-primary: linear-gradient(135deg, #ebf29c 0%, #4b8282 100%);
+}
+
+body {
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-primary-text px-4 py-2 rounded-lg transition-all duration-150 font-medium border-none hover:opacity-90;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-white px-4 py-2 rounded-lg transition-all duration-150 font-medium border-none hover:opacity-90 dark:text-white;
+  }
+
+  .card {
+    @apply bg-surface rounded-lg shadow-sm p-6 border border-border dark:shadow-md;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2 border border-border rounded-lg bg-surface text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary;
+  }
+}
+
+/* Custom Scrollbar for Select Dropdown */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) var(--color-surface);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--color-surface);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
+}
+
+/* Confirm Dialog Animation */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Flip Card Styles */
+.flip-card {
+  background-color: transparent;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  perspective: 1000px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+}
+
+.flip-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-card:hover .flip-card-inner:not(.flipped) {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  box-shadow: 0 8px 14px 0 rgba(0, 0, 0, 0.2);
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+}
+
+.flip-card-front {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.flip-card-back {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  color: var(--color-primary-text);
+  transform: rotateY(180deg);
+}
+
+.dark .flip-card-back {
+  background: linear-gradient(135deg, var(--color-primary) 0%, rgba(205, 183, 158, 0.8) 100%);
+}

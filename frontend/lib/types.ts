@@ -12,6 +12,8 @@ export interface User {
   wallet_address?: string | null
   wallet_type?: 'metamask' | 'local' | null
   created_at: string
+  wallet_address?: string
+  wallet_type?: 'metamask' | 'local' | null
 }
 
 export interface Creator {

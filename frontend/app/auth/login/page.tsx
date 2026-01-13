@@ -29,8 +29,9 @@ export default function LoginPage() {
 
       // Dispatch custom event to notify Navbar
       window.dispatchEvent(new Event('userLogin'))
-      router.push('/')
-      router.refresh()
+
+      // Force page reload to clear any cached user data
+      window.location.href = '/'
     } catch (err: any) {
       const errorMessage = err?.data?.detail || err?.data?.message || err?.data?.error || err?.error || 'Login failed'
       setError(errorMessage)

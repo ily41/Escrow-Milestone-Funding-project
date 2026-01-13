@@ -4,8 +4,12 @@ import { useAuth } from '@/hooks/useAuth'
 import { useGetWalletQuery, useUpdateUserMutation } from '@/lib/api'
 import AuthGuard from '@/components/AuthGuard'
 import { format } from 'date-fns'
+<<<<<<< HEAD
 import Image from 'next/image'
 import { connectWallet, connectLocalWallet } from '@/lib/web3'
+=======
+import { connectWallet, connectLocalWallet, listLocalAccounts } from '@/lib/web3'
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
 import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 
@@ -20,6 +24,22 @@ export default function ProfilePage() {
     const [externalBalance, setExternalBalance] = useState<string | null>(null)
     const [isConnecting, setIsConnecting] = useState(false)
     const [connectionError, setConnectionError] = useState<string | null>(null)
+<<<<<<< HEAD
+=======
+    const [walletType, setWalletType] = useState<'metamask' | 'local' | null>(null)
+
+    // Local Account Selection
+    const [localAccounts, setLocalAccounts] = useState<string[]>([])
+    const [showAccountModal, setShowAccountModal] = useState(false)
+
+    // Initialize wallet type from local storage
+    useEffect(() => {
+        const storedType = localStorage.getItem('wallet_type') as 'metamask' | 'local' | null
+        if (storedType) {
+            setWalletType(storedType)
+        }
+    }, [])
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
 
     // Mock data for fallback
     const mockCurrency = 'ETH'
@@ -27,12 +47,21 @@ export default function ProfilePage() {
 
     useEffect(() => {
         const fetchBalance = async () => {
+<<<<<<< HEAD
             if (user?.wallet_address && user?.wallet_type) {
                 try {
                     let provider;
                     if (user.wallet_type === 'metamask' && typeof window !== 'undefined' && (window as any).ethereum) {
                         provider = new ethers.BrowserProvider((window as any).ethereum)
                     } else if (user.wallet_type === 'local') {
+=======
+            if (user?.wallet_address && walletType) {
+                try {
+                    let provider;
+                    if (walletType === 'metamask' && typeof window !== 'undefined' && (window as any).ethereum) {
+                        provider = new ethers.BrowserProvider((window as any).ethereum)
+                    } else if (walletType === 'local') {
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                         provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545')
                     }
 
@@ -50,9 +79,26 @@ export default function ProfilePage() {
         }
 
         fetchBalance()
+<<<<<<< HEAD
     }, [user?.wallet_address, user?.wallet_type])
 
     const handleConnect = async (type: 'metamask' | 'local') => {
+=======
+    }, [user?.wallet_address, walletType])
+
+    const handleConnectClick = async (type: 'metamask' | 'local') => {
+        if (type === 'metamask') {
+            handleConnect('metamask');
+        } else {
+            // For local, show selection modal
+            const accounts = await listLocalAccounts();
+            setLocalAccounts(accounts);
+            setShowAccountModal(true);
+        }
+    }
+
+    const handleConnect = async (type: 'metamask' | 'local', accountAddress?: string) => {
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
         setIsConnecting(true)
         setConnectionError(null)
         try {
@@ -61,12 +107,25 @@ export default function ProfilePage() {
                 const result = await connectWallet()
                 address = result.address
             } else {
+<<<<<<< HEAD
                 const result = await connectLocalWallet()
+=======
+                const result = await connectLocalWallet(accountAddress)
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                 address = result.address
             }
 
             // Link new wallet (replaces previous one)
+<<<<<<< HEAD
             await updateUser({ wallet_address: address, wallet_type: type }).unwrap()
+=======
+            await updateUser({ wallet_address: address }).unwrap()
+
+            // Persist type locally
+            localStorage.setItem('wallet_type', type)
+            setWalletType(type)
+            setShowAccountModal(false)
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
 
         } catch (err: any) {
             console.error(`${type} connection failed:`, err)
@@ -81,8 +140,15 @@ export default function ProfilePage() {
 
         setIsConnecting(true)
         try {
+<<<<<<< HEAD
             await updateUser({ wallet_address: null, wallet_type: null }).unwrap()
             setExternalBalance(null)
+=======
+            await updateUser({ wallet_address: null }).unwrap()
+            setExternalBalance(null)
+            localStorage.removeItem('wallet_type')
+            setWalletType(null)
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
         } catch (err: any) {
             console.error("Disconnect failed:", err)
             setConnectionError("Failed to disconnect wallet")
@@ -106,11 +172,10 @@ export default function ProfilePage() {
                         <div className="w-full md:w-1/3 lg:w-1/4">
                             <div className="card p-6 text-center">
                                 <div className="relative w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-surface shadow-lg bg-surface">
-                                    <Image
+                                    <img
                                         src={profileImage}
                                         alt="Profile"
-                                        fill
-                                        className="object-cover"
+                                        className="w-full h-full object-cover"
                                     />
                                 </div>
                                 <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>{user?.username}</h1>
@@ -142,11 +207,19 @@ export default function ProfilePage() {
                                             )}
                                         </div>
                                     </div>
+<<<<<<< HEAD
                                     {user?.wallet_type && (
                                         <div className="mt-4">
                                             <span className="text-xs uppercase tracking-wider font-semibold opacity-60">Wallet Type</span>
                                             <div className="text-sm capitalize mt-1 text-primary">
                                                 {user.wallet_type === 'metamask' ? 'MetaMask' : 'Local Wallet'}
+=======
+                                    {walletType && (
+                                        <div className="mt-4">
+                                            <span className="text-xs uppercase tracking-wider font-semibold opacity-60">Wallet Type</span>
+                                            <div className="text-sm capitalize mt-1 text-primary">
+                                                {walletType === 'metamask' ? 'MetaMask' : 'Local Wallet'}
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                                             </div>
                                         </div>
                                     )}
@@ -173,16 +246,27 @@ export default function ProfilePage() {
 
                                 <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* MetaMask Option */}
+<<<<<<< HEAD
                                     <div className={`p-4 rounded-xl border-2 transition-all ${user?.wallet_type === 'metamask' ? 'border-primary bg-primary/5' : 'border-dashed border-border hover:border-primary/50'}`}>
+=======
+                                    <div className={`p-4 rounded-xl border-2 transition-all ${walletType === 'metamask' ? 'border-primary bg-primary/5' : 'border-dashed border-border hover:border-primary/50'}`}>
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold">M</div>
                                             <div className="font-semibold">MetaMask Wallet</div>
                                         </div>
 
+<<<<<<< HEAD
                                         {user?.wallet_type === 'metamask' ? (
                                             <div>
                                                 <div className="text-xs opacity-60 mb-1">Connected Address</div>
                                                 <div className="text-sm font-mono truncate mb-3 text-primary">{user.wallet_address}</div>
+=======
+                                        {walletType === 'metamask' ? (
+                                            <div>
+                                                <div className="text-xs opacity-60 mb-1">Connected Address</div>
+                                                <div className="text-sm font-mono truncate mb-3 text-primary">{user?.wallet_address}</div>
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                                                 <div className="flex items-baseline gap-2 mb-3">
                                                     <span className="text-2xl font-bold text-primary">
                                                         {externalBalance ? parseFloat(externalBalance).toFixed(4) : '...'}
@@ -203,7 +287,11 @@ export default function ProfilePage() {
                                             </div>
                                         ) : (
                                             <button
+<<<<<<< HEAD
                                                 onClick={() => handleConnect('metamask')}
+=======
+                                                onClick={() => handleConnectClick('metamask')}
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                                                 disabled={isConnecting}
                                                 className="w-full btn-secondary text-sm"
                                             >
@@ -213,16 +301,27 @@ export default function ProfilePage() {
                                     </div>
 
                                     {/* Local Wallet Option */}
+<<<<<<< HEAD
                                     <div className={`p-4 rounded-xl border-2 transition-all ${user?.wallet_type === 'local' ? 'border-primary bg-primary/5' : 'border-dashed border-border hover:border-primary/50'}`}>
+=======
+                                    <div className={`p-4 rounded-xl border-2 transition-all ${walletType === 'local' ? 'border-primary bg-primary/5' : 'border-dashed border-border hover:border-primary/50'}`}>
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold">L</div>
                                             <div className="font-semibold">Local Wallet</div>
                                         </div>
 
+<<<<<<< HEAD
                                         {user?.wallet_type === 'local' ? (
                                             <div>
                                                 <div className="text-xs opacity-60 mb-1">Connected Address</div>
                                                 <div className="text-sm font-mono truncate mb-3 text-primary">{user.wallet_address}</div>
+=======
+                                        {walletType === 'local' ? (
+                                            <div>
+                                                <div className="text-xs opacity-60 mb-1">Connected Address</div>
+                                                <div className="text-sm font-mono truncate mb-3 text-primary">{user?.wallet_address}</div>
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                                                 <div className="flex items-baseline gap-2 mb-3">
                                                     <span className="text-2xl font-bold text-primary">
                                                         {externalBalance ? parseFloat(externalBalance).toFixed(4) : '...'}
@@ -243,7 +342,11 @@ export default function ProfilePage() {
                                             </div>
                                         ) : (
                                             <button
+<<<<<<< HEAD
                                                 onClick={() => handleConnect('local')}
+=======
+                                                onClick={() => handleConnectClick('local')}
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                                                 disabled={isConnecting}
                                                 className="w-full btn-secondary text-sm"
                                             >
@@ -257,6 +360,39 @@ export default function ProfilePage() {
                                 <p className="text-xs text-center opacity-50">Linking a new wallet will replace the existing connection.</p>
                             </div>
 
+<<<<<<< HEAD
+=======
+                            {/* Account Selection Modal */}
+                            {showAccountModal && (
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                    <div className="bg-surface card p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-lg font-bold">Select Local Account</h3>
+                                            <button onClick={() => setShowAccountModal(false)} className="text-gray-500 hover:text-gray-700">
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {localAccounts.length > 0 ? (
+                                                localAccounts.map((acc, index) => (
+                                                    <button
+                                                        key={acc}
+                                                        onClick={() => handleConnect('local', acc)}
+                                                        className="w-full text-left p-3 rounded hover:bg-primary/10 border border-border transition-colors font-mono text-xs truncate"
+                                                    >
+                                                        <span className="font-bold mr-2 text-primary">#{index}</span>
+                                                        {acc}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <p className="text-center text-sm opacity-60 py-4">No accounts found. Is your local node running?</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
                             {/* Internal Platform Wallet (if needed for refunds/payouts) */}
                             <div className="card">
                                 <div className="flex justify-between items-start mb-4">

@@ -42,6 +42,7 @@ export const api = createApi({
       query: () => '/api/users/me/',
       providesTags: ['User'],
     }),
+<<<<<<< HEAD
     getCreatorProfile: builder.query({
       query: () => '/api/users/creators/',
       providesTags: ['User'],
@@ -50,6 +51,12 @@ export const api = createApi({
       query: (userData) => ({
         url: '/api/users/me/',
         method: 'PATCH',
+=======
+    updateUser: builder.mutation({
+      query: (userData) => ({
+        url: '/auth/wallet/link/',
+        method: 'POST',
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
         body: userData,
       }),
       invalidatesTags: ['User'],
@@ -246,7 +253,10 @@ export const {
   useLoginMutation,
   useRegisterMutation,
   useGetCurrentUserQuery,
+<<<<<<< HEAD
   useGetCreatorProfileQuery,
+=======
+>>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
   useUpdateUserMutation,
   useGetProjectsQuery,
   useGetMyProjectsQuery,

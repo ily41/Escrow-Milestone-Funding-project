@@ -33,4 +33,4 @@ class UserSerializer(serializers.ModelSerializer):
         return hasattr(obj, 'wallet_profile') and obj.wallet_profile.role == 'backer'
 
 class WalletLinkSerializer(serializers.Serializer):
-    wallet_address = serializers.CharField(max_length=255)
+    wallet_address = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)

@@ -55,8 +55,9 @@ export default function RegisterPage() {
 
       // Dispatch custom event to notify Navbar
       window.dispatchEvent(new Event('userLogin'))
-      router.push('/')
-      router.refresh()
+
+      // Force page reload to clear any cached user data
+      window.location.href = '/'
     } catch (err: any) {
       const errorMessage = err?.data?.error || err?.data?.message || err?.data?.detail || err?.error || 'Registration failed'
       setError(errorMessage)
