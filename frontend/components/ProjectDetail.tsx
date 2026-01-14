@@ -10,8 +10,10 @@ import {
   useCreateUpdateMutation,
   useCreateMilestoneMutation,
   useUpdateMilestoneMutation,
+  useUpdateProjectMutation,
+  useCreateProjectMutation,
 } from '@/lib/api'
-import { submitMilestone } from '@/lib/web3'
+import { deployProject, submitMilestone } from '@/lib/web3'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ui/Toast'
 import MilestoneCard from './MilestoneCard'
@@ -21,13 +23,18 @@ import MilestoneCreateForm from './MilestoneCreateForm'
 
 interface ProjectDetailProps {
   project: Project
+  refetch?: () => void
 }
 
-export default function ProjectDetail({ project }: ProjectDetailProps) {
+
+export default function ProjectDetail({ project, refetch }: ProjectDetailProps) {
+
   const { user } = useAuth()
   const [showPledgeForm, setShowPledgeForm] = useState(false)
   const [showUpdateForm, setShowUpdateForm] = useState(false)
   const [showMilestoneForm, setShowMilestoneForm] = useState(false)
+  const [optimisticTotalPledged, setOptimisticTotalPledged] = useState<number | null>(null)
+
 
   // Handle both project_id (frontend type) and id (backend response)
   const projectId = project.project_id || (project as any).id
@@ -41,27 +48,121 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
   const [createUpdate, { isLoading: isCreatingUpdate }] = useCreateUpdateMutation()
   const [createMilestone, { isLoading: isCreatingMilestone }] = useCreateMilestoneMutation()
   const [updateMilestone] = useUpdateMilestoneMutation()
+  const [createProject, { isLoading: isCreatingProject }] = useCreateProjectMutation()
+  const [updateProjectMutation, { isLoading: isUpdatingProject }] = useUpdateProjectMutation()
 
   // Check if current user is the creator
   // Since we're using wallet addresses now, we need to check against creator_address
   const isCreator = user?.is_creator === true
+  const isBacker = user?.is_backer === true
 
   const getNormalizedStatus = (s: string | number) => {
     if (s === 0 || s === '0') return 'pending'
-    if (s === 1 || s === '1') return 'voting'
-    if (s === 2 || s === '2') return 'approved'
-    if (s === 3 || s === '3') return 'rejected'
-    if (s === 4 || s === '4') return 'completed'
+    if (s === 1 || s === '1') return 'active'
+    if (s === 2 || s === '2') return 'voting'
+    if (s === 3 || s === '3') return 'completed'
+    if (s === 4 || s === '4') return 'rejected'
     return String(s || '').toLowerCase()
   }
 
   const handlePledge = async (amount: number) => {
     try {
-      await createPledge({ projectId, amount }).unwrap()
+      if (!user?.wallet_type) {
+        toast.error('Please link a wallet in your profile first')
+        return
+      }
+
+      const projectOnChainId = project.on_chain_id ?? (project as any).onchain_project_id
+      console.log('[DEBUG] Pledging for project:', {
+        backendId: projectId,
+        onChainId: projectOnChainId,
+        escrow: project.escrow_address
+      })
+      if (projectOnChainId === undefined || projectOnChainId === null) {
+        toast.error('Project not deployed on blockchain')
+        return
+      }
+
+      // 1. Execute on-chain transaction first to get the hash
+      const { pledgeToProject } = await import('@/lib/web3')
+      toast.pending('Submitting pledge to blockchain...')
+      const receipt = await pledgeToProject(
+        project.escrow_address!,
+        projectOnChainId,
+        amount.toString(),
+        user.wallet_type as 'metamask' | 'local',
+        user.wallet_address || undefined
+      )
+
+      // 2. Create pledge in backend with the REAL transaction hash
+      // Mark it as pending so it shows up immediately even after refresh
+      await createPledge({
+        projectId,
+        amount,
+        transaction_hash: receipt.hash
+      }).unwrap()
+
       setShowPledgeForm(false)
-      toast.success('Pledge created successfully!')
+      // Set optimistic state immediately
+      const currentTotal = parseFloat(project.total_pledged || '0')
+      setOptimisticTotalPledged(currentTotal + amount)
+
+      toast.success('Pledge confirmed on blockchain! Syncing progress...')
+
+
+      // Poll every 2 seconds for 30 seconds
+      let attempts = 0
+      const pollInterval = setInterval(async () => {
+        attempts++
+        if (refetch) {
+          const result = await refetch()
+          // If the real total_pledged has been updated by the indexer, clear optimistic state
+          const newTotal = parseFloat((result as any).data?.total_pledged || '0')
+          if (newTotal >= currentTotal + (amount * 0.99)) {
+            setOptimisticTotalPledged(null)
+            clearInterval(pollInterval)
+          }
+        }
+        refetchMilestones()
+        if (attempts >= 15) {
+          clearInterval(pollInterval)
+          setOptimisticTotalPledged(null) // Revert optimistic after timeout just in case
+        }
+      }, 2000)
+
     } catch (error: any) {
-      toast.error(error.data?.error || 'Failed to create pledge')
+      toast.error(error.data?.error || error.message || 'Failed to create pledge')
+    }
+  }
+
+
+  const handleDeployProject = async () => {
+    try {
+      if (!user?.wallet_type) {
+        toast.error('Please link a wallet in your profile first')
+        return
+      }
+
+      const goalEth = (project.funding_goal || (project as any).goal_amount)?.toString() || '1'
+      const deadline = Math.floor(new Date(project.deadline).getTime() / 1000)
+      if (isNaN(deadline)) throw new Error('Invalid project deadline')
+
+      toast.pending('Deploying project to blockchain...')
+      const result = await deployProject(goalEth, deadline, user.wallet_type as 'metamask' | 'local', undefined, user.wallet_address || undefined)
+
+      if (result.onchainProjectId === undefined) throw new Error('Failed to get on-chain project ID')
+
+      await updateProjectMutation({
+        id: projectId,
+        on_chain_id: result.onchainProjectId,
+        created_tx_hash: result.txHash,
+        escrow_address: result.contractAddress,
+      }).unwrap()
+
+      toast.success('Project deployed on-chain!')
+      refetchMilestones()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to deploy project')
     }
   }
 
@@ -92,8 +193,8 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
       }).unwrap()
 
       // 2. Check if project is deployed on-chain
-      const projectOnChainId = (project as any).onchain_project_id
-      if (!projectOnChainId) {
+      const projectOnChainId = project.on_chain_id ?? (project as any).onchain_project_id
+      if (projectOnChainId === undefined || projectOnChainId === null) {
         toast.warning('Milestone created in backend only. Deploy project on-chain first to enable pledging.')
         setShowMilestoneForm(false)
         refetchMilestones()
@@ -109,27 +210,34 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
       }
 
       // 4. Submit milestone on blockchain
+      toast.pending('Submitting milestone to blockchain...')
       const result = await submitMilestone(
         projectOnChainId,
         title,
         amount.toString(),
         user.wallet_type as 'metamask' | 'local',
-        (project as any).escrow_address
+        (project as any).escrow_address,
+        user.wallet_address || undefined
       )
 
-      // 5. Update backend with onchain_milestone_id
+      // 5. Update backend with on_chain_id
       if (result.onchainMilestoneId === undefined) {
         throw new Error('Failed to extract milestone ID from blockchain transaction')
       }
 
-      await updateMilestone({
-        projectId,
-        milestoneId: (milestone as any).id,
-        onchain_milestone_id: result.onchainMilestoneId,
-      }).unwrap()
+      // If backend didn't return an ID, refetch to find it
+      let mId = (milestone as any).id || (milestone as any).milestone_id
+      if (!mId) {
+        console.warn('Could not find milestone ID to update on-chain ID');
+      } else {
+        await updateMilestone({
+          projectId,
+          milestoneId: mId,
+          on_chain_id: result.onchainMilestoneId,
+        }).unwrap()
+      }
 
       setShowMilestoneForm(false)
-      refetchMilestones()
       toast.success('Milestone created on blockchain!')
     } catch (error: any) {
       const errorMessage = error?.data?.detail || error?.data?.error || error?.message || 'Failed to create milestone'
@@ -137,18 +245,23 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
     }
   }
 
-  const progress = project.progress_percentage || 0
-  const totalPledged = parseFloat(project.total_pledged || '0')
+  const progress_pct = project.progress_percentage || 0
+  const realTotalPledged = parseFloat(project.total_pledged || '0')
+  const totalPledged = optimisticTotalPledged !== null ? optimisticTotalPledged : realTotalPledged
   const goalAmount = parseFloat(project.goal_amount || '0')
 
+  // Calculate percentage based on possibly optimistic total
+  const progress = goalAmount > 0 ? (totalPledged / goalAmount) * 100 : 0
+
   // Calculate remaining amount for milestones
+
   const totalMilestoneAmount = milestones.reduce((sum: number, m: any) => sum + parseFloat(m.target_amount || '0'), 0)
   const remainingAmount = goalAmount - totalMilestoneAmount
 
   // Calculate sequential funding progress
   let remainingPledge = totalPledged
   const milestonesWithFunding = milestones.map((m: any) => {
-    const target = parseFloat(m.target_amount)
+    const target = parseFloat(m.required_amount || '0')
     const funded = Math.min(remainingPledge, target)
     remainingPledge = Math.max(0, remainingPledge - funded)
     return { ...m, funded_amount: funded }
@@ -184,16 +297,32 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
             <div className="mb-4">
               <div className="flex justify-between text-sm mb-2">
                 <span style={{ color: 'var(--text)', opacity: 0.7 }}>Raised</span>
-                <span className="font-semibold text-lg" style={{ color: 'var(--text)' }}>
-                  {project.currency} {totalPledged.toLocaleString()}
-                </span>
+                <div className="flex items-center gap-2">
+                  {project.is_syncing && (
+                    <span className="text-xs font-medium animate-pulse text-primary flex items-center gap-1">
+                      <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Syncing...
+                    </span>
+                  )}
+                  <span className="font-semibold text-lg" style={{ color: 'var(--text)' }}>
+                    {project.currency} {totalPledged.toLocaleString()}
+                  </span>
+                </div>
+
               </div>
-              <div className="w-full rounded-full h-4" style={{ backgroundColor: 'var(--border)' }}>
+              <div className="w-full rounded-full h-4 relative overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>
+                {project.is_syncing && (
+                  <div className="absolute inset-0 bg-primary/10 animate-sync-slide" />
+                )}
                 <div
-                  className="h-4 rounded-full transition-all"
+                  className={`h-4 rounded-full transition-all duration-1000 ${project.is_syncing ? 'animate-pulse opacity-80' : ''}`}
                   style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: 'var(--primary)' }}
                 />
               </div>
+
               <div className="flex justify-between text-sm mt-2" style={{ color: 'var(--text)', opacity: 0.7 }}>
                 <span>Goal: {project.currency} {goalAmount.toLocaleString()}</span>
                 <span>{Math.min(progress, 100).toFixed(1)}%</span>
@@ -204,8 +333,8 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
               <button
                 onClick={() => setShowPledgeForm(!showPledgeForm)}
                 className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!milestones.some((m: any) => m.is_activated)}
-                title={!milestones.some((m: any) => m.is_activated) ? "No active milestones" : ""}
+                disabled={!(project.on_chain_id || (project as any).onchain_project_id)}
+                title={!(project.on_chain_id || (project as any).onchain_project_id) ? "Project not deployed on-chain" : ""}
               >
                 {showPledgeForm ? 'Cancel' : 'Make a Pledge'}
               </button>
@@ -390,7 +519,7 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
           {/* On-Chain Deployment Details */}
           <div className="card">
             <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text)' }}>On-Chain Deployment</h3>
-            {(project as any).onchain_project_id ? (
+            {project.on_chain_id || (project as any).onchain_project_id ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
@@ -399,42 +528,43 @@ export default function ProjectDetail({ project }: ProjectDetailProps) {
                 <div className="flex justify-between">
                   <span style={{ color: 'var(--text)', opacity: 0.7 }}>On-Chain ID</span>
                   <span className="font-mono font-semibold" style={{ color: 'var(--text)' }}>
-                    {(project as any).onchain_project_id}
+                    {project.on_chain_id || (project as any).onchain_project_id}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span style={{ color: 'var(--text)', opacity: 0.7 }}>Wallet Type</span>
-                  <span className="font-semibold capitalize" style={{ color: 'var(--text)' }}>
-                    {(project as any).deployment_wallet_type === 'metamask' ? 'MetaMask' : 'Local Wallet'}
+                  <span style={{ color: 'var(--text)', opacity: 0.7 }}>Address</span>
+                  <span className="font-mono text-xs truncate max-w-[120px]" style={{ color: 'var(--text)' }}>
+                    {project.escrow_address}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span style={{ color: 'var(--text)', opacity: 0.7 }}>Chain ID</span>
-                  <span className="font-mono" style={{ color: 'var(--text)' }}>
-                    {(project as any).chain_id || 'N/A'}
-                  </span>
+              </div>
+            ) : isCreator ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                  <span className="text-amber-600">Not Deployed</span>
                 </div>
-                {(project as any).escrow_address && (
-                  <div>
-                    <span className="text-xs" style={{ color: 'var(--text)', opacity: 0.7 }}>Contract Address</span>
-                    <div className="text-xs font-mono break-all mt-1" style={{ color: 'var(--text)' }}>
-                      {(project as any).escrow_address}
-                    </div>
-                  </div>
-                )}
-                {(project as any).created_tx_hash && (
-                  <div>
-                    <span className="text-xs" style={{ color: 'var(--text)', opacity: 0.7 }}>Transaction Hash</span>
-                    <div className="text-xs font-mono break-all mt-1" style={{ color: 'var(--text)' }}>
-                      {(project as any).created_tx_hash}
-                    </div>
-                  </div>
-                )}
+                <button
+                  onClick={handleDeployProject}
+                  disabled={isUpdatingProject}
+                  className="btn-primary-outline w-full text-xs py-2 flex items-center justify-center gap-2"
+                >
+                  {isUpdatingProject ? (
+                    'Deploying...'
+                  ) : (
+                    <>
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 2V14M2 8H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                      Submit Project to Blockchain
+                    </>
+                  )}
+                </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                <span className="text-amber-600">Not Deployed</span>
+              <div className="flex items-center gap-2 opacity-60">
+                <div className="w-3 h-3 rounded-full bg-slate-400"></div>
+                <span className="text-slate-500 italic">Project initialization in progress</span>
               </div>
             )}
           </div>

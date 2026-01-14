@@ -43,8 +43,8 @@ class ProjectListView(generics.ListAPIView):
         
         return queryset
 
-@extend_schema(summary="Get project detail")
-class ProjectDetailView(generics.RetrieveAPIView):
+@extend_schema(summary="Get or update project detail")
+class ProjectDetailView(generics.RetrieveUpdateAPIView):
     queryset = Project.objects.using('indexer').all()
     serializer_class = ProjectSerializer
     lookup_field = 'project_id'
@@ -56,6 +56,12 @@ class ProjectMilestonesView(generics.ListAPIView):
     def get_queryset(self):
         project_id = self.kwargs['project_id']
         return Milestone.objects.using('indexer').filter(project__project_id=project_id)
+
+@extend_schema(summary="Get or update milestone detail")
+class MilestoneDetailView(generics.RetrieveUpdateAPIView):
+    queryset = Milestone.objects.using('indexer').all()
+    serializer_class = MilestoneSerializer
+    lookup_field = 'milestone_id'
 
 @extend_schema(summary="List pledges for a project")
 class ProjectPledgesView(generics.ListAPIView):
@@ -127,7 +133,8 @@ class MilestoneCreateView(APIView):
             project=project,
             title=data['title'],
             description=data.get('description', ''),
-            required_amount=data['required_amount'],
+            required_amount=data['target_amount'],
+            due_date=data.get('due_date'),
             status=0  # 0 = Pending
         )
 
@@ -153,8 +160,9 @@ class MilestoneActivationView(APIView):
         except Milestone.DoesNotExist:
             return Response({"detail": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Update milestone status to activated (3)
-        milestone.status = 3  # 3 = Activated
+        # Update milestone: status=1 (Active) and is_activated=True
+        milestone.status = 1  # 1 = Active (not 3 which is Completed)
+        milestone.is_activated = True
         milestone.save(using='indexer')
         
         tx_hash = fake_tx_hash()
@@ -194,11 +202,11 @@ class PledgeCreateView(APIView):
         except (ValueError, TypeError):
              return Response({"detail": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Update Project total_pledged
+        # Update Project total_pledged removed - will be handled by indexer worker
         try:
             project = Project.objects.using('indexer').get(project_id=project_id)
-            project.total_pledged = float(project.total_pledged) + amount_decimal
-            project.save(using='indexer')
+            # project.total_pledged = float(project.total_pledged) + amount_decimal
+            # project.save(using='indexer')
 
             # Distribute funds to milestones sequentially (Waterfall)
             milestones = Milestone.objects.using('indexer').filter(project=project).order_by('milestone_id')
@@ -222,23 +230,27 @@ class PledgeCreateView(APIView):
             defaults={'status': 1}
         )
 
-        # Create Pledge record
+        # Create PENDING Pledge record
+        # This allows the frontend to show the progress immediately even after refresh.
+        # Status 0 = Pending/Unconfirmed (will be updated to 1 by indexer)
+        tx_hash = request.data.get("transaction_hash") or fake_tx_hash()
         from datetime import datetime, timezone
         Pledge.objects.using('indexer').create(
             project=project,
             backer=backer,
             amount=amount_decimal,
-            transaction_hash=fake_tx_hash(),
+            transaction_hash=tx_hash,
             pledged_at=datetime.now(timezone.utc),
-            status=1 # 1 = Confirmed
+            status=0 # 0 = Pending
         )
 
-        tx_hash = fake_tx_hash()
         return Response({
-            "status": "submitted",
+            "status": "pending",
             "tx_hash": tx_hash,
-            "note": "Wire this to real web3 contract call",
+            "on_chain_id": project.on_chain_id,
+            "escrow_address": project.escrow_address,
         })
+
 
 
 class HistoryView(APIView):
@@ -371,8 +383,8 @@ class OpenVotingView(APIView):
         except Milestone.DoesNotExist:
             return Response({"detail": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if milestone.status != 0:  # 0 = Pending
-            return Response({"detail": "Milestone is not in pending status"}, status=status.HTTP_400_BAD_REQUEST)
+        if milestone.status not in [0, 1]:  # 0 = Pending, 1 = Active/Activated
+            return Response({"detail": "Milestone is already in voting or completed"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if milestone funding is > 70%
         # Note: percentage field doesn't exist in model, skipping this check for now
@@ -380,7 +392,7 @@ class OpenVotingView(APIView):
         #     return Response({"detail": "Milestone funding must be > 70% to open voting"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Update milestone status to voting
-        milestone.status = 1  # 1 = Voting
+        milestone.status = 2  # 2 = Voting
         milestone.save(using='indexer')
 
         tx_hash = fake_tx_hash()
@@ -405,7 +417,7 @@ class VoteOnMilestoneView(APIView):
         except Milestone.DoesNotExist:
             return Response({"detail": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if milestone.status != 1:  # 1 = Voting
+        if milestone.status != 2:  # 2 = Voting
             return Response({"detail": "Milestone is not in voting status"}, status=status.HTTP_400_BAD_REQUEST)
 
         decision = request.data.get('decision')
@@ -421,47 +433,123 @@ class VoteOnMilestoneView(APIView):
         if not backer:
             return Response({"detail": "You must pledge to this project before voting"}, status=status.HTTP_400_BAD_REQUEST)
         
-        existing_vote = Vote.objects.using('indexer').filter(
-            milestone=milestone,
-            backer=backer
-        ).first()
+        # ALLOW RE-VOTING for now to handle re-syncing with blockchain
+        # existing_vote = Vote.objects.using('indexer').filter(
+        #     milestone=milestone,
+        #     backer=backer
+        # ).first()
+        # 
+        # if existing_vote:
+        #     return Response({"detail": "You have already voted on this milestone"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if existing_vote:
-            return Response({"detail": "You have already voted on this milestone"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get pledge amount for weight (simplified - in real version, get from blockchain)
-        pledge = Pledge.objects.using('indexer').filter(
-            project=milestone.project,
-            backer__wallet_address=profile.wallet_address.lower()
-        ).first()
+        try:
+            # Get pledge amount for weight (simplified - in real version, get from blockchain)
+            pledge = Pledge.objects.using('indexer').filter(
+                project_id=milestone.project_id,
+                backer__wallet_address=profile.wallet_address.lower()
+            ).first()
 
-        weight = pledge.amount if pledge else 1
-        
-        # Convert decision to approval integer
-        approval_value = 1 if decision == 'approve' else 0
+            weight = pledge.amount if pledge else 1
+            
+            # Convert decision to approval integer
+            approval_value = 1 if decision == 'approve' else 0
 
-        # Create vote
-        Vote.objects.using('indexer').create(
-            milestone=milestone,
-            backer=backer,
-            approval=approval_value,
-            vote_weight=weight
-        )
+            # Update or create vote
+            Vote.objects.using('indexer').update_or_create(
+                milestone=milestone,
+                backer=backer,
+                defaults={
+                    'approval': approval_value,
+                    'vote_weight': weight
+                }
+            )
 
-        # Check if voting is complete and update status
-        approve_count = milestone.votes.filter(approval=1).count()
-        reject_count = milestone.votes.filter(approval=0).count()
+            # Check if voting is complete and update status
+            from django.db.models import Sum, Q
+            from api.web3_client import get_current_block, PROJECT_ESCROW_ADDRESS
+            from indexer.models import SyncState
 
-        # Simple logic: if we have votes and approve > reject, mark as approved
-        if approve_count > reject_count and (approve_count + reject_count) >= 1:
-            milestone.status = 2  # 2 = Approved
-            milestone.save(using='indexer')
+            # Count unique backers who have pledged to this project
+            total_backers = Pledge.objects.using('indexer').filter(
+                project_id=milestone.project_id,
+                status=1 # Confirmed pledges
+            ).values('backer_id').distinct().count()
+
+            current_votes = milestone.votes.using('indexer').count()
+
+            # Determine if we can finalize voting
+            # We trust the database state for votes and backers here.
+            # No need to wait for blockchain sync if we already have the votes recorded.
+            can_finalize = False
+            
+            if total_backers > 0 and current_votes >= total_backers:
+                can_finalize = True
+                print(f"[DEBUG] Voting reached backer count ({current_votes}/{total_backers}). Finalizing...")
+
+            if can_finalize:
+                # Use explicit Vote.objects.using('indexer') for aggregate to avoid related manager issues
+                from django.db.models import Sum, Q
+                result = Vote.objects.using('indexer').filter(milestone_id=milestone.milestone_id).aggregate(
+                    approve=Sum('vote_weight', filter=Q(approval=1)),
+                    reject=Sum('vote_weight', filter=Q(approval=0))
+                )
+                approve_weight = result['approve'] or 0
+                reject_weight = result['reject'] or 0
+
+                # If passed, move to Approved/Ready for Release (5), otherwise Rejected (4)
+                if approve_weight > reject_weight:
+                    milestone.status = 5
+                else:
+                    milestone.status = 4
+                milestone.save(using='indexer')
+                print(f"[DEBUG] Voting finalized: status={milestone.status}, approve={approve_weight}, reject={reject_weight}")
+
+            tx_hash = fake_tx_hash()
+
+            return Response({
+                "status": "vote_cast",
+                "decision": decision,
+                "tx_hash": tx_hash,
+                "milestone_status": milestone.status,
+                "can_finalize": can_finalize,
+                "current_votes": current_votes,
+                "total_backers": total_backers
+            })
+        except Exception as e:
+            import traceback
+            print("[CRITICAL] Error in VoteOnMilestoneView:")
+            print(traceback.format_exc())
+            # Return JSON error instead of letting Django show HTML error page
+            return Response({"detail": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ReleaseFundsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(summary="Release funds for a completed milestone (on-chain placeholder)")
+    def post(self, request, milestone_id):
+        profile = require_role(request.user, ["creator"])
+        if not profile.wallet_address:
+            return Response({"detail": "Creator wallet not linked"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            milestone = Milestone.objects.using('indexer').get(milestone_id=milestone_id)
+        except Milestone.DoesNotExist:
+            return Response({"detail": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if milestone.status != 5:  # 5 = Approved/Ready for Release
+            return Response({"detail": "Milestone is not approved for release"}, status=status.HTTP_400_BAD_REQUEST)
+
 
         tx_hash = fake_tx_hash()
 
         return Response({
-            "status": "vote_cast",
-            "decision": decision,
+            "status": "release_initiated",
             "tx_hash": tx_hash,
+            "project_on_chain_id": milestone.project.on_chain_id,
+            "milestone_on_chain_id": milestone.on_chain_id,
+            "escrow_address": milestone.project.escrow_address,
             "note": "Wire this to real web3 contract call",
         })
+

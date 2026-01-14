@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-<<<<<<< HEAD
+
 const PROJECT_ESCROW_ABI = [
     {
         "inputs": [
@@ -600,27 +600,65 @@ export const connectWallet = async () => {
     return { provider, signer, address };
 };
 
-export const connectLocalWallet = async () => {
-    // Connect to local Hardhat node
-    const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545');
+export const listLocalAccounts = async () => {
+    try {
+        const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+        const accounts = await provider.listAccounts();
+        return accounts.map(acc => acc.address);
+    } catch (error) {
+        console.error("Error listing local accounts:", error);
+        return [];
+    }
+};
 
-    // Get the first account from the node
-    const signer = await provider.getSigner(0);
-    const address = await signer.getAddress();
+export const connectLocalWallet = async (addressOrIndex?: string | number) => {
+    try {
+        const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+        const accounts = await provider.listAccounts();
 
-    return { provider, signer, address };
+        if (accounts.length === 0) {
+            throw new Error("No accounts found on local node");
+        }
+
+        let signer;
+        let address;
+
+        if (typeof addressOrIndex === 'string') {
+            const found = accounts.find(acc => acc.address.toLowerCase() === addressOrIndex.toLowerCase());
+            if (!found) throw new Error("Account not found");
+            signer = await provider.getSigner(found.address);
+            address = found.address;
+        } else if (typeof addressOrIndex === 'number') {
+            signer = await provider.getSigner(addressOrIndex);
+            address = accounts[addressOrIndex].address;
+        } else {
+            // Default to first
+            signer = await provider.getSigner(0);
+            address = accounts[0].address;
+        }
+
+        return {
+            provider,
+            signer,
+            address
+        };
+    } catch (error) {
+        console.error("Error connecting to Local Wallet:", error);
+        throw error;
+    }
 };
 
 export const pledgeToProject = async (
     contractAddress: string,
     onChainProjectId: number,
     amountEth: string,
-    walletType: 'metamask' | 'local' = 'metamask'
+    walletType: 'metamask' | 'local' = 'metamask',
+    walletAddress?: string
 ) => {
     let signer;
 
     if (walletType === 'local') {
-        const result = await connectLocalWallet();
+        const result = await connectLocalWallet(walletAddress);
         signer = result.signer;
     } else {
         const result = await connectWallet();
@@ -637,13 +675,14 @@ export const pledgeToProject = async (
 };
 
 // Default contract address for local Hardhat node
-const LOCAL_PROJECT_ESCROW_ADDRESS = '0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB';
+const LOCAL_PROJECT_ESCROW_ADDRESS = '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707';
 
 export const deployProject = async (
     fundingGoalEth: string,
     deadlineTimestamp: number,
     walletType: 'metamask' | 'local',
-    contractAddress?: string
+    contractAddress?: string,
+    walletAddress?: string
 ) => {
     const address = contractAddress || LOCAL_PROJECT_ESCROW_ADDRESS;
 
@@ -656,7 +695,7 @@ export const deployProject = async (
         const network = await result.provider.getNetwork();
         chainId = network.chainId.toString();
     } else {
-        const result = await connectLocalWallet();
+        const result = await connectLocalWallet(walletAddress);
         signer = result.signer;
         chainId = '31337'; // Hardhat default chainId
     }
@@ -706,7 +745,14 @@ export const deployProject = async (
 
     // If we couldn't parse the event, try to read nextProjectId - 1 from contract
     if (onchainProjectId === undefined) {
-        console.warn('Could not extract projectId from logs, this may cause issues');
+        console.warn('Could not extract projectId from logs, fallback to contract call...');
+        try {
+            const nextId = await contract.nextProjectId();
+            onchainProjectId = Number(nextId) - 1;
+            console.log('Extracted onchainProjectId via fallback:', onchainProjectId);
+        } catch (err) {
+            console.error('Fallback failed:', err);
+        }
     }
 
     return {
@@ -722,14 +768,15 @@ export const submitMilestone = async (
     title: string,
     amountEth: string,
     walletType: 'metamask' | 'local',
-    contractAddress?: string
+    contractAddress?: string,
+    walletAddress?: string
 ) => {
     const address = contractAddress || LOCAL_PROJECT_ESCROW_ADDRESS;
 
     let signer;
 
     if (walletType === 'local') {
-        const result = await connectLocalWallet();
+        const result = await connectLocalWallet(walletAddress);
         signer = result.signer;
     } else {
         const result = await connectWallet();
@@ -747,7 +794,6 @@ export const submitMilestone = async (
     const receipt = await tx.wait();
     console.log('Transaction confirmed. Logs:', receipt.logs.length);
 
-    // Extract milestone ID from event logs
     let onchainMilestoneId: number | undefined;
     for (const log of receipt.logs) {
         try {
@@ -763,12 +809,24 @@ export const submitMilestone = async (
                 break;
             }
         } catch (e) {
-            console.warn('Failed to parse log:', e);
+            // Ignore logs that don't match our interface
         }
     }
 
     if (onchainMilestoneId === undefined) {
-        console.warn('Could not extract milestoneId from logs');
+        console.warn('Could not extract milestoneId from logs, trying fallback...');
+        try {
+            // Fallback: Get milestoneCount from Milestones contract
+            const milestonesAddr = await contract.milestonesContract();
+            const milestonesContract = new ethers.Contract(milestonesAddr, [
+                "function milestoneCount(uint256 projectId) external view returns (uint256)"
+            ], signer);
+            const count = await milestonesContract.milestoneCount(onChainProjectId);
+            onchainMilestoneId = Number(count) - 1;
+            console.log('Extracted onchainMilestoneId via fallback:', onchainMilestoneId);
+        } catch (err) {
+            console.error('Milestone fallback failed:', err);
+        }
     }
 
     return {
@@ -782,14 +840,15 @@ export const activateMilestone = async (
     onChainProjectId: number,
     onChainMilestoneId: number,
     walletType: 'metamask' | 'local',
-    contractAddress?: string
+    contractAddress?: string,
+    walletAddress?: string
 ) => {
     const address = contractAddress || LOCAL_PROJECT_ESCROW_ADDRESS;
 
     let signer;
 
     if (walletType === 'local') {
-        const result = await connectLocalWallet();
+        const result = await connectLocalWallet(walletAddress);
         signer = result.signer;
     } else {
         const result = await connectWallet();
@@ -809,77 +868,75 @@ export const activateMilestone = async (
     return {
         txHash: receipt.hash
     };
-=======
-// Types for window.ethereum
-interface Window {
-    ethereum?: any;
-}
+};
 
-export const connectWallet = async () => {
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-        try {
-            const provider = new ethers.BrowserProvider((window as any).ethereum);
-            const accounts = await provider.send("eth_requestAccounts", []);
-            const signer = await provider.getSigner();
-            return {
-                provider,
-                signer,
-                address: accounts[0]
-            };
-        } catch (error) {
-            console.error("Error connecting to MetaMask:", error);
-            throw error;
-        }
+export const releaseFunds = async (
+    onChainProjectId: number,
+    onChainMilestoneId: number,
+    walletType: 'metamask' | 'local',
+    contractAddress?: string,
+    walletAddress?: string
+) => {
+    const address = contractAddress || LOCAL_PROJECT_ESCROW_ADDRESS;
+
+    let signer;
+
+    if (walletType === 'local') {
+        const result = await connectLocalWallet(walletAddress);
+        signer = result.signer;
     } else {
-        throw new Error("MetaMask is not installed");
+        const result = await connectWallet();
+        signer = result.signer;
     }
+
+    const contract = new ethers.Contract(address, PROJECT_ESCROW_ABI, signer);
+
+    console.log('Releasing funds on-chain:', { onChainProjectId, onChainMilestoneId });
+
+    const tx = await contract.releaseFunds(onChainProjectId, onChainMilestoneId);
+    console.log('Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Funds released. TxHash:', receipt.hash);
+
+    return {
+        txHash: receipt.hash
+    };
 };
 
-export const listLocalAccounts = async () => {
-    try {
-        const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
-        const accounts = await provider.listAccounts();
-        return accounts.map(acc => acc.address);
-    } catch (error) {
-        console.error("Error listing local accounts:", error);
-        return [];
+export const voteOnMilestone = async (
+    onChainProjectId: number,
+    onChainMilestoneId: number,
+    approve: boolean,
+    walletType: 'metamask' | 'local',
+    contractAddress?: string,
+    walletAddress?: string
+) => {
+    const address = contractAddress || LOCAL_PROJECT_ESCROW_ADDRESS;
+
+    let signer;
+
+    if (walletType === 'local') {
+        const result = await connectLocalWallet(walletAddress);
+        signer = result.signer;
+    } else {
+        const result = await connectWallet();
+        signer = result.signer;
     }
+
+    const contract = new ethers.Contract(address, PROJECT_ESCROW_ABI, signer);
+
+    console.log('Voting on milestone on-chain:', { onChainProjectId, onChainMilestoneId, approve });
+
+    const tx = await contract.voteOnMilestone(onChainProjectId, onChainMilestoneId, approve);
+    console.log('Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Vote cast. TxHash:', receipt.hash);
+
+    return {
+        txHash: receipt.hash
+    };
 };
 
-export const connectLocalWallet = async (addressOrIndex?: string | number) => {
-    try {
-        const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
-        const accounts = await provider.listAccounts();
 
-        if (accounts.length === 0) {
-            throw new Error("No accounts found on local node");
-        }
-
-        let signer;
-        let address;
-
-        if (typeof addressOrIndex === 'string') {
-            const found = accounts.find(acc => acc.address.toLowerCase() === addressOrIndex.toLowerCase());
-            if (!found) throw new Error("Account not found");
-            signer = await provider.getSigner(found.address);
-            address = found.address;
-        } else if (typeof addressOrIndex === 'number') {
-            signer = await provider.getSigner(addressOrIndex);
-            address = accounts[addressOrIndex].address;
-        } else {
-            // Default to first
-            signer = await provider.getSigner(0);
-            address = accounts[0].address;
-        }
-
-        return {
-            provider,
-            signer,
-            address
-        };
-    } catch (error) {
-        console.error("Error connecting to Local Wallet:", error);
-        throw error;
-    }
->>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
-};

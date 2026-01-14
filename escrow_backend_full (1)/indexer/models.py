@@ -22,7 +22,7 @@ import uuid
 
 class Milestone(models.Model):
     milestone_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, db_column='project_id')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, db_column='project_id', related_name='milestones')
     title = models.CharField(max_length=255)
     description = models.TextField()
     # Mapping required_amount to funding_amount in DB
@@ -31,7 +31,7 @@ class Milestone(models.Model):
     due_date = models.DateTimeField(null=True, blank=True)
     submitted_at = models.DateTimeField(null=True, blank=True) # Added from schema
     status = models.IntegerField(default=0) # DB uses integer
-    # is_activated removed as it's not in DB and not used
+    is_activated = models.BooleanField(default=False) # Track if milestone is activated on-chain
     
     # On-chain data
     on_chain_id = models.IntegerField(null=True, blank=True) # Restored
@@ -58,8 +58,8 @@ class Backer(models.Model):
 
 class Pledge(models.Model):
     pledge_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    project = models.ForeignKey(Project, on_delete=models.DO_NOTHING, db_column='project_id')
-    backer = models.ForeignKey(Backer, on_delete=models.DO_NOTHING, db_column='backer_id')
+    project = models.ForeignKey(Project, on_delete=models.DO_NOTHING, db_column='project_id', related_name='pledges')
+    backer = models.ForeignKey(Backer, on_delete=models.DO_NOTHING, db_column='backer_id', related_name='pledges')
     amount = models.DecimalField(max_digits=38, decimal_places=18)
     transaction_hash = models.CharField(max_length=255, unique=True, null=True)
     block_number = models.IntegerField(null=True, blank=True)
@@ -73,7 +73,7 @@ class Pledge(models.Model):
 
 class Release(models.Model):
     id = models.AutoField(primary_key=True)
-    milestone = models.ForeignKey(Milestone, on_delete=models.DO_NOTHING)
+    milestone = models.ForeignKey(Milestone, on_delete=models.DO_NOTHING, related_name='releases')
     amount = models.DecimalField(max_digits=38, decimal_places=18)
     transaction_hash = models.CharField(max_length=255)
     released_at = models.DateTimeField()
@@ -84,7 +84,7 @@ class Release(models.Model):
 
 class Refund(models.Model):
     id = models.AutoField(primary_key=True)
-    pledge = models.ForeignKey(Pledge, on_delete=models.DO_NOTHING)
+    pledge = models.ForeignKey(Pledge, on_delete=models.DO_NOTHING, related_name='refunds')
     amount = models.DecimalField(max_digits=38, decimal_places=18)
     transaction_hash = models.CharField(max_length=255)
     refunded_at = models.DateTimeField()
@@ -107,7 +107,7 @@ class AuditLog(models.Model):
 class Vote(models.Model):
     vote_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     milestone = models.ForeignKey(Milestone, on_delete=models.DO_NOTHING, related_name='votes', db_column='milestone_id')
-    backer = models.ForeignKey(Backer, on_delete=models.DO_NOTHING, db_column='backer_id')
+    backer = models.ForeignKey(Backer, on_delete=models.DO_NOTHING, db_column='backer_id', related_name='votes')
     approval = models.IntegerField()  # 1 = approve, 0 = reject
     vote_weight = models.DecimalField(max_digits=38, decimal_places=18, default=1)
     voted_at = models.DateTimeField(auto_now_add=True)

@@ -173,3 +173,14 @@ body {
 .dark .flip-card-back {
   background: linear-gradient(135deg, var(--color-primary) 0%, rgba(205, 183, 158, 0.8) 100%);
 }
+
+@keyframes sync-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-sync-slide {
+  animation: sync-slide 2s linear infinite;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  width: 100%;
+}

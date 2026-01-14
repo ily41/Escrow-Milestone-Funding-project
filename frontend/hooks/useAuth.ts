@@ -25,7 +25,8 @@ export function useAuth() {
         }
 
         if (data) {
-            setUser(data as User)
+            const walletType = localStorage.getItem('wallet_type') as 'metamask' | 'local' | null
+            setUser({ ...(data as User), wallet_type: walletType })
             setLoading(false)
         } else if (error) {
             // Token might be invalid, clear it

@@ -2,10 +2,10 @@ from django.urls import path
 from .views import (
     ProjectListView, ProjectDetailView,
     ProjectMilestonesView, ProjectPledgesView,
-    ProjectCreateView, MilestoneCreateView, MilestoneActivationView, PledgeCreateView,
+    ProjectCreateView, MilestoneCreateView, MilestoneDetailView, MilestoneActivationView, PledgeCreateView,
     HistoryView, TransactionDetailView,
     AdminResolveView, AdminLogsView, AdminMetricsView,
-    ProjectStatusUpdateView, OpenVotingView, VoteOnMilestoneView,
+    ProjectStatusUpdateView, OpenVotingView, VoteOnMilestoneView, ReleaseFundsView,
 )
 
 urlpatterns = [
@@ -14,12 +14,15 @@ urlpatterns = [
     path("projects/<str:project_id>/", ProjectDetailView.as_view(), name="projects-detail"),
     path("projects/<str:project_id>/milestones/", ProjectMilestonesView.as_view(), name="projects-milestones"),
     path("projects/<str:project_id>/milestones/create/", MilestoneCreateView.as_view(), name="milestones-create"),
+    path("milestones/<uuid:milestone_id>/", MilestoneDetailView.as_view(), name="milestone-detail"),
     path("projects/<str:project_id>/milestones/<uuid:milestone_id>/activate/", MilestoneActivationView.as_view(), name="milestones-activate"),
     path("projects/<str:project_id>/pledges/", ProjectPledgesView.as_view(), name="projects-pledges"),
     path("projects/<str:project_id>/pledge/", PledgeCreateView.as_view(), name="pledge-create"),
     path("projects/milestones/<uuid:milestone_id>/open-voting/", OpenVotingView.as_view(), name="milestone-open-voting"),
     path("projects/milestones/<uuid:milestone_id>/vote/", VoteOnMilestoneView.as_view(), name="milestone-vote"),
+    path("projects/milestones/<uuid:milestone_id>/release-funds/", ReleaseFundsView.as_view(), name="milestone-release-funds"),
     path("history/", HistoryView.as_view(), name="history"),
+
     path("tx/<str:tx_hash>/", TransactionDetailView.as_view(), name="tx-detail"),
     path("admin/resolve/", AdminResolveView.as_view(), name="admin-resolve"),
     path("admin/logs/", AdminLogsView.as_view(), name="admin-logs"),

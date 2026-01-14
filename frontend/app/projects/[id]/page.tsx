@@ -12,7 +12,7 @@ export default function ProjectDetailPage({
   const resolvedParams = use(params)
   const projectId = resolvedParams.id // UUID is a string, not a number
 
-  const { data: project, isLoading, error } = useGetProjectQuery(projectId)
+  const { data: project, isLoading, error, refetch } = useGetProjectQuery(projectId)
 
   if (isLoading) {
     return (
@@ -30,5 +30,6 @@ export default function ProjectDetailPage({
     )
   }
 
-  return <ProjectDetail project={project} />
+  return <ProjectDetail project={project} refetch={refetch} />
+
 }

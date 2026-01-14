@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import ThemeToggle from './ThemeToggle'
 import HamburgerMenu from './HamburgerMenu'
 import CoinModel from './CoinModel'
+import NotificationCenter from './NotificationCenter'
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth()
@@ -63,6 +64,7 @@ export default function Navbar() {
               ))}
             </div>
 
+            <NotificationCenter />
             <ThemeToggle />
 
             {/* User info and logout for authenticated users */}

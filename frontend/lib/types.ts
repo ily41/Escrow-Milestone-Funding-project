@@ -12,8 +12,6 @@ export interface User {
   wallet_address?: string | null
   wallet_type?: 'metamask' | 'local' | null
   created_at: string
-  wallet_address?: string
-  wallet_type?: 'metamask' | 'local' | null
 }
 
 export interface Creator {
@@ -37,7 +35,7 @@ export interface Project {
   status: number | string  // Backend uses integer, but can be string in some contexts
   milestones?: Milestone[]
   escrow_address?: string
-  onchain_project_id?: number
+  on_chain_id?: number
   deployment_wallet_type?: 'metamask' | 'local' | null
   chain_id?: string | null
   milestones_count?: number  // For list views
@@ -46,9 +44,12 @@ export interface Project {
   total_pledged?: string  // Alias for current_funding
   progress_percentage?: number
   currency?: string  // Not in backend, might be computed
+  is_syncing?: boolean
 }
 
+
 export interface Milestone {
+  id?: string  // Add id field for backend response
   milestone_id: string
   project: string | number  // project_id
   title: string
@@ -58,6 +59,7 @@ export interface Milestone {
   submitted_at: string | null
   status: number | string  // Backend uses integer
   voting_session_id?: string | null
+  on_chain_id?: number // Add on_chain_id
   // Computed fields for frontend
   target_amount?: string  // Alias for funding_amount
   order_index?: number

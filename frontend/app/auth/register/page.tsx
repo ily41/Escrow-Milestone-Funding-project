@@ -36,9 +36,7 @@ export default function RegisterPage() {
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        password2: formData.password2,
-        is_creator: formData.role === 'creator',
-        is_backer: true // All users are backers by default
+        role: formData.role,
       }
 
       await register(registrationData).unwrap()
