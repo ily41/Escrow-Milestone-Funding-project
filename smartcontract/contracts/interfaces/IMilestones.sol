@@ -22,6 +22,8 @@ interface IMilestones {
         uint256 milestoneId
     ) external;
 
+    function milestoneCount(uint256 projectId) external view returns (uint256);
+
     function getMilestone(uint256 projectId, uint256 milestoneId)
         external
         view

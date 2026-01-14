@@ -10,7 +10,7 @@ const LOG = (msg) =>
   fs.appendFileSync(__dirname + "/indexer.log", `[${new Date().toISOString()}] ${msg}\n`);
 
 const POLLING_INTERVAL = 5000; // 5 seconds
-const CONFIRMATIONS = 1; // Lowered for local dev speed
+const CONFIRMATIONS = 0; // Immediate for local dev speed
 const CHUNK_SIZE = 1000;
 
 async function getLastSyncedBlock() {
@@ -21,7 +21,7 @@ async function getLastSyncedBlock() {
     );
     if (res.rowCount === 0) {
       await db.query(
-        "INSERT INTO sync_state (contract_address, last_processed_block, updated_at) VALUES ($1, 0, datetime('now'))",
+        "INSERT INTO sync_state (contract_address, last_processed_block, updated_at) VALUES ($1, 0, NOW())",
         [contract.target.toLowerCase()]
       );
       return 0;
@@ -51,52 +51,108 @@ async function handleProjectCreated(event) {
 }
 
 async function handlePledgeMade(event) {
-  const [projectId, backerWallet, amountWei] = event.args;
-
-  // Find project in Django table
-  const project_r = await db.query(
-    `SELECT id FROM projects_project WHERE onchain_project_id=$1`,
-    [Number(projectId)]
-  );
-  if (project_r.rowCount === 0) {
-    LOG("PledgeMade ERROR: project not found for onchain_id=" + projectId);
-    return;
-  }
-  const project_db_id = project_r.rows[0].id;
-
-  // Find backer in Django table
-  const backer_id = await findUserByWallet(backerWallet);
-  if (!backer_id) {
-    LOG("PledgeMade ERROR: Backer not found for wallet=" + backerWallet);
-    return;
-  }
-
-  const amount = Number(ethers.formatEther(amountWei));
-
-  // Check if pledge already exists (idempotency)
-  const existing = await db.query(
-    `SELECT id FROM finance_pledge WHERE payment_reference=$1`,
-    [event.transactionHash]
-  );
-  if (existing.rowCount > 0) {
-    LOG("PledgeMade SKIPPED: Already indexed tx=" + event.transactionHash);
-    return;
-  }
-
-  // Insert pledge into finance_pledge
-  // status='active' (Django uses 'active', 'refunded', 'cancelled')
   try {
-    const res = await db.query(
-      `INSERT INTO finance_pledge (project_id, backer_id, amount, currency, status, payment_reference, created_at)
-        VALUES ($1, $2, $3, 'ETH', 'active', $4, datetime('now'))
-        RETURNING id`,
-      [project_db_id, backer_id, amount, event.transactionHash]
+    const [projectId, backerWallet, amountWei] = event.args;
+
+    // Find project in Django table
+    const project_r = await db.query(
+      `SELECT project_id FROM projects WHERE on_chain_id=$1`,
+      [Number(projectId)]
     );
-    // const pledge_id = res.rows[0].id; // Unused
+    if (project_r.rowCount === 0) {
+      LOG("PledgeMade ERROR: project not found for onchain_id=" + projectId);
+      return;
+    }
+    const project_db_id = project_r.rows[0].project_id;
+
+    // Find backer in Django table
+    let backer_id = await findUserByWallet(backerWallet);
+    if (!backer_id) {
+      LOG("PledgeMade ERROR: Backer not found for wallet=" + backerWallet);
+      // Auto-create backer to be robust
+      LOG("Auto-creating backer...");
+      const { v4: uuidv4 } = require('uuid');
+      const newBackerId = uuidv4();
+      try {
+        await db.query(`
+            INSERT INTO backers (backer_id, wallet_address, status, total_pledged, registered_at)
+            VALUES ($1, $2, 1, 0, NOW())
+            ON CONFLICT (wallet_address) DO NOTHING
+        `, [newBackerId, backerWallet.toLowerCase()]);
+
+        // Retrieve it (in case conflict happened and we didn't insert)
+        const b_res = await db.query("SELECT backer_id FROM backers WHERE LOWER(wallet_address)=$1", [backerWallet.toLowerCase()]);
+        if (b_res.rowCount > 0) {
+          backer_id = b_res.rows[0].backer_id;
+          LOG("Backer auto-created/found: " + backer_id);
+        } else {
+          LOG("CRITICAL: Failed to auto-create backer");
+          return;
+        }
+      } catch (err) {
+        LOG("Error creating backer: " + err.message);
+        return;
+      }
+    }
+
+    const amount = Number(ethers.formatEther(amountWei));
+
+    // Check if pledge already exists (idempotency)
+    const existing = await db.query(
+      `SELECT pledge_id, status FROM pledges WHERE transaction_hash=$1`,
+      [event.transactionHash]
+    );
+
+    if (existing.rowCount > 0) {
+      if (existing.rows[0].status === 1) {
+        LOG("PledgeMade SKIPPED: Already indexed tx=" + event.transactionHash);
+        return;
+      }
+      LOG("PledgeMade: Finalizing PENDING tx=" + event.transactionHash);
+      await db.query(
+        `UPDATE pledges SET status=1, block_number=$1, voting_power=$2 WHERE transaction_hash=$3`,
+        [event.blockNumber, amount, event.transactionHash]
+      );
+    } else {
+      // Insert new pledge into pledges
+      try {
+        const { v4: uuidv4 } = require('uuid');
+        const pledge_id = uuidv4();
+        await db.query(
+          `INSERT INTO pledges (pledge_id, project_id, backer_id, amount, status, transaction_hash, pledged_at, voting_power, block_number)
+          VALUES ($1, $2, $3, $4, 1, $5, NOW(), $6, $7)`,
+          [pledge_id, project_db_id, backer_id, amount, event.transactionHash, amount, event.blockNumber]
+        );
+      } catch (e) {
+        LOG("PledgeMade INSERT ERROR: " + e.message);
+        return;
+      }
+    }
 
     LOG(`PledgeMade OK: project_id=${project_db_id}, amount=${amount}`);
+
+
+    // Update Project total_pledged and potentially status
+    const p_res = await db.query(
+      `UPDATE projects 
+       SET total_pledged = total_pledged + $1 
+       WHERE project_id = $2 
+       RETURNING total_pledged, funding_goal`,
+      [amount, project_db_id]
+    );
+
+    if (p_res.rowCount > 0) {
+      const { total_pledged, funding_goal } = p_res.rows[0];
+      if (Number(total_pledged) >= Number(funding_goal)) {
+        await db.query(
+          `UPDATE projects SET status='successful' WHERE project_id=$1`,
+          [project_db_id]
+        );
+        LOG(`Project SUCCESSFUL: project_id=${project_db_id}`);
+      }
+    }
   } catch (err) {
-    console.error("Error inserting pledge:", err);
+    console.error("Error inserting pledge or updating project:", err);
     throw err;
   }
 }
@@ -104,22 +160,35 @@ async function handlePledgeMade(event) {
 async function handleMilestoneSubmitted(event) {
   const [projectId, milestoneId, description, amountWei] = event.args;
 
+  LOG(`MilestoneSubmitted: onchainProjectId=${projectId}, milestoneId=${milestoneId}, description=${description}`);
+
   const project_r = await db.query(
-    `SELECT id FROM projects_project WHERE onchain_project_id=$1`,
+    `SELECT project_id FROM projects WHERE on_chain_id=$1`,
     [Number(projectId)]
   );
-  if (project_r.rowCount === 0) return;
-  const project_db_id = project_r.rows[0].id;
+  if (project_r.rowCount === 0) {
+    LOG(`MilestoneSubmitted: Project with onChainId=${projectId} not found in DB`);
+    return;
+  }
+  const project_db_id = project_r.rows[0].project_id;
 
+  // Find the milestone created by backend that doesn't have on_chain_id yet
+  // We match by project and title (since title is usually unique per project)
+  const title = description; // In our contract, description is used for title
   const ms_r = await db.query(
-    `SELECT id FROM projects_milestone WHERE project_id=$1 AND onchain_milestone_id=$2`,
-    [project_db_id, Number(milestoneId)]
+    `SELECT milestone_id FROM milestones WHERE project_id=$1 AND title=$2 AND on_chain_id IS NULL`,
+    [project_db_id, title]
   );
 
   if (ms_r.rowCount === 0) {
-    LOG(`MilestoneSubmitted: No matching milestone found yet for onchain_id=${milestoneId}`);
+    LOG(`MilestoneSubmitted: No matching 'Pending' milestone found for project=${project_db_id} title='${title}'`);
   } else {
-    LOG(`MilestoneSubmitted OK: Found milestone ${ms_r.rows[0].id}`);
+    const db_milestone_id = ms_r.rows[0].milestone_id;
+    await db.query(
+      `UPDATE milestones SET on_chain_id=$1, transaction_hash=$2 WHERE milestone_id=$3`,
+      [Number(milestoneId), event.transactionHash, db_milestone_id]
+    );
+    LOG(`MilestoneSubmitted OK: Updated milestone ${db_milestone_id} with on_chain_id=${milestoneId}, keeping status=0 (Pending)`);
   }
 }
 
@@ -127,21 +196,21 @@ async function handleFundsReleased(event) {
   const [projectId, milestoneId, amountWei] = event.args;
 
   const project_r = await db.query(
-    `SELECT id FROM projects_project WHERE onchain_project_id=$1`,
+    `SELECT project_id FROM projects WHERE on_chain_id=$1`,
     [Number(projectId)]
   );
   if (project_r.rowCount === 0) return;
-  const project_db_id = project_r.rows[0].id;
+  const project_db_id = project_r.rows[0].project_id;
 
   const ms_r = await db.query(
-    `SELECT id FROM projects_milestone WHERE project_id=$1 AND onchain_milestone_id=$2`,
+    `SELECT milestone_id FROM milestones WHERE project_id=$1 AND on_chain_id=$2`,
     [project_db_id, Number(milestoneId)]
   );
   if (ms_r.rowCount === 0) return;
-  const milestone_db_id = ms_r.rows[0].id;
+  const milestone_db_id = ms_r.rows[0].milestone_id;
 
-  // Check idempotency via tx_reference
-  const existingRelease = await db.query(`SELECT id FROM finance_release WHERE tx_reference=$1`, [event.transactionHash]);
+  // Check idempotency via transaction_hash
+  const existingRelease = await db.query(`SELECT id FROM releases WHERE transaction_hash=$1`, [event.transactionHash]);
   if (existingRelease.rowCount > 0) {
     LOG("FundsReleased SKIPPED: Already indexed tx=" + event.transactionHash);
     return;
@@ -149,99 +218,127 @@ async function handleFundsReleased(event) {
 
   const amount = Number(ethers.formatEther(amountWei));
 
-  // Find creator
-  const creator_r = await db.query(`SELECT creator_id FROM projects_project WHERE id=$1`, [project_db_id]);
-  const creator_id = creator_r.rows[0].creator_id;
-
-  // Find or Create Wallet for Creator
-  let wallet_id;
-  const w_r = await db.query(`SELECT id FROM finance_wallet WHERE owner_type='creator' AND owner_id=$1`, [creator_id]);
-  if (w_r.rowCount > 0) {
-    wallet_id = w_r.rows[0].id;
-  } else {
-    const w_ins = await db.query(
-      `INSERT INTO finance_wallet (owner_type, owner_id, balance, currency, created_at)
-           VALUES ('creator', $1, 0, 'USD', datetime('now')) RETURNING id`,
-      [creator_id]
-    );
-    wallet_id = w_ins.rows[0].id;
-  }
-
   // Insert release
   await db.query(
-    `INSERT INTO finance_release (milestone_id, amount_released, released_to_wallet_id, released_at, tx_reference)
-       VALUES ($1, $2, $3, datetime('now'), $4)`,
-    [milestone_db_id, amount, wallet_id, event.transactionHash]
+    `INSERT INTO releases (milestone_id, amount, transaction_hash, released_at)
+       VALUES ($1, $2, $3, NOW())`,
+    [milestone_db_id, amount, event.transactionHash]
   );
 
-  // Update milestone status to 'paid'
+  // Update milestone status to 3 (DONE/PAID)
   await db.query(
-    `UPDATE projects_milestone SET status='paid' WHERE id=$1`,
+    `UPDATE milestones SET status=3 WHERE milestone_id=$1`,
     [milestone_db_id]
   );
-  LOG(`FundsReleased OK: amount=${amount}`);
+  LOG(`FundsReleased OK: amount=${amount} for milestone=${milestone_db_id}`);
 }
 
 async function handleRefundIssued(event) {
   const [projectId, backerWallet, amountWei] = event.args;
 
   const project_r = await db.query(
-    `SELECT id FROM projects_project WHERE onchain_project_id=$1`,
+    `SELECT project_id FROM projects WHERE on_chain_id=$1`,
     [Number(projectId)]
   );
   if (project_r.rowCount === 0) return;
-  const project_db_id = project_r.rows[0].id;
+  const project_db_id = project_r.rows[0].project_id;
 
-  const backer_id = await findUserByWallet(backerWallet);
-  if (!backer_id) return;
+  const backer_r = await db.query(`SELECT backer_id FROM backers WHERE wallet_address=$1`, [backerWallet.toLowerCase()]);
+  if (backer_r.rowCount === 0) return;
+  const backer_id = backer_r.rows[0].backer_id;
 
   const amount = Number(ethers.formatEther(amountWei));
 
-  // Find pledge - check if already refunded to prevent duplicate
+  // Find pledge to link refund
   const pledgeRes = await db.query(
-    `SELECT id, status FROM finance_pledge WHERE project_id=$1 AND backer_id=$2 AND status='active' LIMIT 1`,
+    `SELECT pledge_id FROM pledges WHERE project_id=$1 AND backer_id=$2 AND status=1 LIMIT 1`,
     [project_db_id, backer_id]
   );
+  if (pledgeRes.rowCount === 0) return;
+  const pledge_id = pledgeRes.rows[0].pledge_id;
 
-  if (pledgeRes.rowCount > 0) {
-    const pledge_id = pledgeRes.rows[0].id;
+  // Insert refund
+  await db.query(
+    `INSERT INTO refunds (pledge_id, amount, transaction_hash, refunded_at)
+       VALUES ($1, $2, $3, NOW())`,
+    [pledge_id, amount, event.transactionHash]
+  );
 
-    // Insert refund
-    await db.query(
-      `INSERT INTO finance_refund (pledge_id, amount, reason, status, created_at)
-             VALUES ($1, $2, 'On-chain refund', 'processed', datetime('now'))`,
-      [pledge_id, amount]
-    );
-
-    // Update pledge status
-    await db.query(`UPDATE finance_pledge SET status='refunded' WHERE id=$1`, [pledge_id]);
-
-    LOG(`RefundIssued OK: amount=${amount}`);
-  } else {
-    LOG("RefundIssued SKIPPED: No active pledge found or already refunded.");
-  }
+  LOG(`RefundIssued OK: backer=${backerWallet} amount=${amount}`);
 }
 
 async function handleVotingStarted(event) {
   const [projectId, milestoneId] = event.args;
 
   const project_r = await db.query(
-    `SELECT id FROM projects_project WHERE onchain_project_id=$1`,
+    `SELECT project_id FROM projects WHERE on_chain_id=$1`,
     [Number(projectId)]
   );
   if (project_r.rowCount === 0) return;
-  const project_db_id = project_r.rows[0].id;
+  const project_db_id = project_r.rows[0].project_id;
 
   const ms_r = await db.query(
-    `SELECT id FROM projects_milestone WHERE project_id=$1 AND onchain_milestone_id=$2`,
+    `SELECT milestone_id FROM milestones WHERE project_id=$1 AND on_chain_id=$2`,
     [project_db_id, Number(milestoneId)]
   );
   if (ms_r.rowCount === 0) return;
-  const milestone_db_id = ms_r.rows[0].id;
+  const milestone_db_id = ms_r.rows[0].milestone_id;
 
-  await db.query(`UPDATE projects_milestone SET status='voting' WHERE id=$1`, [milestone_db_id]);
+  // Status 2 = Voting (Open)
+  await db.query(`UPDATE milestones SET status=2 WHERE milestone_id=$1`, [milestone_db_id]);
 
-  LOG(`VotingStarted OK: Updated milestone ${milestone_db_id} to 'voting'`);
+  LOG(`VotingStarted OK: Updated milestone ${milestone_db_id} to status=2 (Voting)`);
+}
+
+async function handleMilestoneActivated(event) {
+  const [projectId, milestoneId] = event.args;
+
+  LOG(`MilestoneActivated: onchainProjectId=${projectId}, milestoneId=${milestoneId}`);
+
+  const project_r = await db.query(
+    `SELECT project_id FROM projects WHERE on_chain_id=$1`,
+    [Number(projectId)]
+  );
+  if (project_r.rowCount === 0) return;
+  const project_db_id = project_r.rows[0].project_id;
+
+  const ms_r = await db.query(
+    `SELECT milestone_id FROM milestones WHERE project_id=$1 AND on_chain_id=$2`,
+    [project_db_id, Number(milestoneId)]
+  );
+  if (ms_r.rowCount === 0) {
+    LOG(`MilestoneActivated WARNING: No matching milestone found for project=${project_db_id} on_chain_id=${milestoneId}`);
+    return;
+  }
+  const milestone_db_id = ms_r.rows[0].milestone_id;
+
+  // Status 1 = Active
+  await db.query(`UPDATE milestones SET is_activated=true, status=1 WHERE milestone_id=$1`, [milestone_db_id]);
+
+  LOG(`MilestoneActivated OK: Updated milestone ${milestone_db_id} to is_activated=true, status=1`);
+}
+
+async function handleMilestoneRefunded(event) {
+  const [projectId, milestoneId] = event.args;
+
+  const project_r = await db.query(
+    `SELECT project_id FROM projects WHERE on_chain_id=$1`,
+    [Number(projectId)]
+  );
+  if (project_r.rowCount === 0) return;
+  const project_db_id = project_r.rows[0].project_id;
+
+  const ms_r = await db.query(
+    `SELECT milestone_id FROM milestones WHERE project_id=$1 AND on_chain_id=$2`,
+    [project_db_id, Number(milestoneId)]
+  );
+  if (ms_r.rowCount === 0) return;
+  const milestone_db_id = ms_r.rows[0].milestone_id;
+
+  // Status 4 = Rejected/Failed
+  await db.query(`UPDATE milestones SET status=4 WHERE milestone_id=$1`, [milestone_db_id]);
+
+  LOG(`MilestoneRefunded OK: Updated milestone ${milestone_db_id} to status=4 (Rejected)`);
 }
 
 async function processEvent(event) {
@@ -253,16 +350,20 @@ async function processEvent(event) {
       await handlePledgeMade(event);
     } else if (event.eventName === "MilestoneSubmitted") {
       await handleMilestoneSubmitted(event);
+    } else if (event.eventName === "MilestoneActivated") {
+      await handleMilestoneActivated(event);
     } else if (event.eventName === "FundsReleased") {
       await handleFundsReleased(event);
     } else if (event.eventName === "RefundIssued") {
       await handleRefundIssued(event);
     } else if (event.eventName === "VotingStarted") {
       await handleVotingStarted(event);
+    } else if (event.eventName === "MilestoneRefunded") {
+      await handleMilestoneRefunded(event);
     }
   } catch (err) {
-    console.error(`Error processing event ${event.eventName} at ${transactionHash}:`, err);
-    LOG(`ERROR ${event.eventName}: ${err.message}`);
+    LOG(`ERROR processing ${event.eventName}: ${err.message}`);
+    console.error(`Error processing ${event.eventName}:`, err);
   }
 }
 
@@ -276,9 +377,10 @@ async function main() {
       CREATE TABLE IF NOT EXISTS sync_state (
         contract_address TEXT PRIMARY KEY,
         last_processed_block INTEGER DEFAULT 0,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    LOG("sync_state table ensured (PostgreSQL mode).");
   } catch (err) {
     console.error("Failed to ensure sync_state table exists:", err);
   }

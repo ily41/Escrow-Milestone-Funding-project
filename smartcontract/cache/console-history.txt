@@ -1,3 +1,12 @@
+await ethers.provider.getCode("0x0165878A594ca255338adfa4d48449f69242Eb8F")
+await ethers.provider.getCode("0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f")
+console.log(events.ma0].toString() })));
+const events = await escrow.queryFilter(escrow.filters.VotingStarted());
+events[0].blockNumber
+events.length;
+const filter = escrow.filters.VotingStarted(const events = await escrow.queryFilter(filter);
+const escrow = await ethers.getContractAt("ProjectEscrow", "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1");
+await ethers.provider.getBlockNumber()
 console.log('Is deadline in future?', 1767324420 > now)
 ne timestamp:', 1767324420)
 console.console.log('Deadli

@@ -2,11 +2,7 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\GovernanceLight.sol": {
-<<<<<<< HEAD
-      "lastModificationDate": 1765736880726,
-=======
-      "lastModificationDate": 1767905562156,
->>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
+      "lastModificationDate": 1768308301586,
       "contentHash": "fb5fcee4ea9d606b78d39c9424f31c02",
       "sourceName": "contracts/GovernanceLight.sol",
       "solcConfig": {
@@ -42,11 +38,7 @@
       ]
     },
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\interfaces\\IGovernanceLight.sol": {
-<<<<<<< HEAD
-      "lastModificationDate": 1765736880726,
-=======
-      "lastModificationDate": 1767905562157,
->>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
+      "lastModificationDate": 1768308301588,
       "contentHash": "cc7982782aa2d0141139fa6a5ad7b572",
       "sourceName": "contracts/interfaces/IGovernanceLight.sol",
       "solcConfig": {
@@ -82,13 +74,8 @@
       ]
     },
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\ProjectEscrow.sol": {
-<<<<<<< HEAD
-      "lastModificationDate": 1765925944273,
-      "contentHash": "748f283bb89b05586a74c47f4329b60f",
-=======
-      "lastModificationDate": 1767911649310,
-      "contentHash": "dfd8e9ad87e836c47cfe6458de89cc99",
->>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
+      "lastModificationDate": 1768330635594,
+      "contentHash": "b236cec3de024de7c9058a75ad95d4e0",
       "sourceName": "contracts/ProjectEscrow.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -127,89 +114,8 @@
         "ProjectEscrow"
       ]
     },
-<<<<<<< HEAD
-    "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\interfaces\\ITreasury.sol": {
-      "lastModificationDate": 1765736880727,
-=======
-    "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\interfaces\\IMilestones.sol": {
-      "lastModificationDate": 1767911649310,
-      "contentHash": "ddd3dbdf72366eeedb93e94241609f1c",
-      "sourceName": "contracts/interfaces/IMilestones.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "evmVersion": "paris",
-          "optimizer": {
-            "enabled": false,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "IMilestones"
-      ]
-    },
-    "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\interfaces\\ITreasury.sol": {
-      "lastModificationDate": 1767905562158,
->>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
-      "contentHash": "a7ca1573209aa5862886d9eed60974b7",
-      "sourceName": "contracts/interfaces/ITreasury.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "evmVersion": "paris",
-          "optimizer": {
-            "enabled": false,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ITreasury"
-      ]
-    },
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\interfaces\\IRefunds.sol": {
-<<<<<<< HEAD
-      "lastModificationDate": 1765736880726,
-=======
-      "lastModificationDate": 1767905562158,
->>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
+      "lastModificationDate": 1768308301589,
       "contentHash": "74d16d71948e481bf1044e10b7982e55",
       "sourceName": "contracts/interfaces/IRefunds.sol",
       "solcConfig": {
@@ -244,10 +150,9 @@
         "IRefunds"
       ]
     },
-<<<<<<< HEAD
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\interfaces\\IMilestones.sol": {
-      "lastModificationDate": 1765925759768,
-      "contentHash": "c79931358d627322bc92d8e3dde23310",
+      "lastModificationDate": 1768325104484,
+      "contentHash": "186b40c4b0dc23af914872391c955763",
       "sourceName": "contracts/interfaces/IMilestones.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -281,14 +186,45 @@
         "IMilestones"
       ]
     },
+    "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\interfaces\\ITreasury.sol": {
+      "lastModificationDate": 1768308301589,
+      "contentHash": "a7ca1573209aa5862886d9eed60974b7",
+      "sourceName": "contracts/interfaces/ITreasury.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ITreasury"
+      ]
+    },
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\Milestones.sol": {
-      "lastModificationDate": 1765925738704,
+      "lastModificationDate": 1768310533345,
       "contentHash": "86393b96e584ca7960a0484a9b881ded",
-=======
-    "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\Milestones.sol": {
-      "lastModificationDate": 1767911649309,
-      "contentHash": "3085f8d4fde4b6645d717bb69ad09d50",
->>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
       "sourceName": "contracts/Milestones.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -323,11 +259,7 @@
       ]
     },
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\Refunds.sol": {
-<<<<<<< HEAD
-      "lastModificationDate": 1765736880727,
-=======
-      "lastModificationDate": 1767905562156,
->>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
+      "lastModificationDate": 1768308301586,
       "contentHash": "f3d8a64a6bf12b40e5a46dc7354e0056",
       "sourceName": "contracts/Refunds.sol",
       "solcConfig": {
@@ -363,11 +295,7 @@
       ]
     },
     "C:\\Users\\user\\Desktop\\Escrow-Milestone-Funding-project\\smartcontract\\contracts\\Treasury.sol": {
-<<<<<<< HEAD
-      "lastModificationDate": 1765736880727,
-=======
-      "lastModificationDate": 1767905562157,
->>>>>>> ad1ef14187c7614f8f75153e49f0d338877094b8
+      "lastModificationDate": 1768308301588,
       "contentHash": "71de1d6f02a656d7e3a05d544d899517",
       "sourceName": "contracts/Treasury.sol",
       "solcConfig": {

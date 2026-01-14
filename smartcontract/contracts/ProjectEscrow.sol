@@ -52,7 +52,7 @@ contract ProjectEscrow {
         uint256 currentFunding;
         uint256 deadline;
         ProjectStatus status;
-        bool hasActiveMilestones;
+        // bool hasActiveMilestones; // Removed: brittle flag
     }
 
 
@@ -85,6 +85,11 @@ contract ProjectEscrow {
     );
 
     event MilestoneActivated(
+        uint256 indexed projectId,
+        uint256 indexed milestoneId
+    );
+
+    event MilestoneRefunded(
         uint256 indexed projectId,
         uint256 indexed milestoneId
     );
@@ -146,8 +151,7 @@ contract ProjectEscrow {
             fundingGoal: fundingGoalWei,
             currentFunding: 0,
             deadline: deadlineTimestamp,
-            status: ProjectStatus.Active,
-            hasActiveMilestones: false
+            status: ProjectStatus.Active
         });
 
         emit ProjectCreated(id, msg.sender, fundingGoalWei, deadlineTimestamp);
@@ -160,7 +164,19 @@ contract ProjectEscrow {
         require(p.creator != address(0), "Project not found");
         require(block.timestamp < p.deadline, "Funding ended");
         require(msg.value > 0, "Send ETH");
-        require(p.hasActiveMilestones, "No active milestones");
+        require(msg.value > 0, "Send ETH");
+        
+        // Dynamic check: must have at least one activated milestone
+        bool anyActive = false;
+        uint256 mCount = IMilestones(milestonesContract).milestoneCount(projectId);
+        for (uint256 i = 0; i < mCount; i++) {
+            (,,,bool activated,) = IMilestones(milestonesContract).getMilestone(projectId, i);
+            if (activated) {
+                anyActive = true;
+                break;
+            }
+        }
+        require(anyActive, "No active milestones");
 
         p.currentFunding += msg.value;
         pledges[projectId][msg.sender] += msg.value;
@@ -169,6 +185,33 @@ contract ProjectEscrow {
 
         if (p.currentFunding >= p.fundingGoal) {
             p.status = ProjectStatus.Successful;
+        }
+
+        // Auto-start voting if milestone is full
+        _checkAutoVoting(projectId);
+    }
+
+    function _checkAutoVoting(uint256 projectId) internal {
+        uint256 count = IMilestones(milestonesContract).milestoneCount(projectId);
+        for (uint256 i = 0; i < count; i++) {
+            (uint256 amountWei, bool exists, bool released, bool activated, bool votingStarted) = 
+                IMilestones(milestonesContract).getMilestone(projectId, i);
+            
+            if (!exists) continue;
+            if (released) continue;
+            
+            // If already in voting, we don't need to start another one sequentially
+            if (votingStarted) break;
+
+            if (activated) {
+                if (projects[projectId].currentFunding >= amountWei) {
+                    IMilestones(milestonesContract).startVoting(projectId, i);
+                    emit VotingStarted(projectId, i);
+                }
+                // Stop at the first activated milestone (even if it didn't start voting due to funds)
+                break;
+            }
+            // If not activated, we continue to see if later ones are activated
         }
     }
 
@@ -189,8 +232,10 @@ contract ProjectEscrow {
         uint256 milestoneId
     ) external onlyCreator(projectId) {
         IMilestones(milestonesContract).activateMilestone(projectId, milestoneId);
-        projects[projectId].hasActiveMilestones = true;
         emit MilestoneActivated(projectId, milestoneId);
+        
+        // Check if it should be immediately in voting
+        _checkAutoVoting(projectId);
     }
 
     function voteOnMilestone(
@@ -212,6 +257,16 @@ contract ProjectEscrow {
         );
 
         emit VoteCast(projectId, milestoneId, msg.sender, approve, weight);
+
+        // Auto-release/refund if quorum met
+        (uint256 yesWeight, uint256 noWeight) = IGovernanceLight(governanceContract).getTally(projectId, milestoneId);
+        uint256 goal = projects[projectId].fundingGoal;
+        
+        if (yesWeight > goal / 2) {
+            this.releaseFunds(projectId, milestoneId);
+        } else if (noWeight >= goal / 2) {
+            this.refundMilestone(projectId, milestoneId);
+        }
     }
 
     function openVoting(
@@ -238,7 +293,7 @@ contract ProjectEscrow {
     function releaseFunds(
         uint256 projectId,
         uint256 milestoneId
-    ) external onlyCreator(projectId) {
+    ) external {
         Project storage p = projects[projectId];
 
         // 1) Load milestone from Milestones.sol
@@ -289,7 +344,7 @@ contract ProjectEscrow {
     function refundMilestone(
         uint256 projectId,
         uint256 milestoneId
-    ) external onlyCreator(projectId) {
+    ) external {
         Project storage p = projects[projectId];
 
          (
@@ -324,8 +379,7 @@ contract ProjectEscrow {
         // This effectively "returns" them to the pool for future usage.
 
         IMilestones(milestonesContract).markReleased(projectId, milestoneId);
-
-        emit RefundIssued(projectId, address(0), amountWei); // address(0) implies project pool
+        emit MilestoneRefunded(projectId, milestoneId);
     }
 
 

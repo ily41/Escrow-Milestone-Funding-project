@@ -1,65 +1,24 @@
-const path = require('path');
-const Database = require('better-sqlite3');
+const { Pool } = require('pg');
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
-// Resolve path to backend's db.sqlite3
-const dbPath = path.resolve(__dirname, '../../backend/db.sqlite3');
-console.log("DB Path:", dbPath);
-const db = new Database(dbPath); // verbose: console.log to debug if needed
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL
+});
 
 module.exports = {
-    // Mimic pg.query interface: query(text, params) -> { rows: [], rowCount: n }
-    async query(text, params = []) {
-        // 1. Convert Postgres $1, $2... params to SQLite ?
-        const sql = text.replace(/\$\d+/g, '?');
-
-        // 2. Handle RETURNING clause (common in PG, not always simple in SQLite)
-        // We strip 'RETURNING id' and use info.lastInsertRowid
-        const hasReturning = /RETURNING\s+(\w+)/i.exec(sql);
-        let cleanSql = sql;
-        let returnField = null;
-
-        if (hasReturning) {
-            returnField = hasReturning[1];
-            cleanSql = sql.replace(/RETURNING\s+[\w\(\)]+/i, ''); // Strip RETURNING id or RETURNING *
-        }
-
-        const isInsert = /^\s*INSERT/i.test(cleanSql);
-        const isUpdate = /^\s*UPDATE/i.test(cleanSql);
-        const isDelete = /^\s*DELETE/i.test(cleanSql);
-
+    async query(text, params) {
+        const start = Date.now();
         try {
-            const stmt = db.prepare(cleanSql);
-
-            if (!stmt.reader) {
-                // INSERT, UPDATE, DELETE, CREATE, etc. (Writes)
-                const info = stmt.run(...params);
-                // Info: { changes: number, lastInsertRowid: number | bigint }
-
-                let rows = [];
-                if (hasReturning && isInsert) {
-                    // Mock the return object
-                    let row = {};
-                    // If the return field is a column, map lastID to it?
-                    // Assumes we are returning the primary key.
-                    row[returnField] = info.lastInsertRowid;
-                    rows.push(row);
-                }
-
-                return {
-                    rowCount: info.changes,
-                    rows: rows
-                };
-            } else {
-                // SELECT (Reads)
-                const rows = stmt.all(...params);
-                return {
-                    rowCount: rows.length,
-                    rows: rows
-                };
-            }
+            const res = await pool.query(text, params);
+            const duration = Date.now() - start;
+            // console.log('Executed query', { text, duration, rows: res.rowCount });
+            return res;
         } catch (err) {
-            // console.error("SQLite Error:", err.message, "Query:", cleanSql);
+            console.error('Database query error:', err.message);
             throw err;
         }
+    },
+    async close() {
+        await pool.end();
     }
 };
